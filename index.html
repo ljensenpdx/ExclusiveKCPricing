@@ -8,12 +8,11 @@
     <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
     <style>
         :root {
-            --bg-dark: #050505;
-            --window-bg: #0a0a0a;
-            --term-green: #00ff00; 
-            --term-dim: #004400;
+            --bg-dark: #000000;
+            --window-bg: #050505;
+            --term-green: #00ff00; /* NEON GREEN */
+            --term-dim: #003300;
             --term-warn: #ffff00;
-            --header-gray: #1a1a1a;
             --border: #00ff00;
         }
 
@@ -26,101 +25,101 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-image: radial-gradient(circle, #111 1px, transparent 1px);
-            background-size: 40px 40px;
         }
 
-        /* TERMINAL WINDOW FRAME */
+        /* TERMINAL WINDOW */
         .window {
-            width: 95%;
-            max-width: 1200px;
+            width: 98%;
+            max-width: 1300px;
             background: var(--window-bg);
-            border: 2px solid var(--term-green);
-            border-radius: 4px;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.15);
+            border: 3px solid var(--term-green);
+            border-radius: 2px;
+            box-shadow: 0 0 40px rgba(0, 255, 0, 0.2);
             overflow: hidden;
-            animation: bootUp 0.6s ease-out;
         }
-
-        @keyframes bootUp { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
         .window-header {
             background: var(--term-green);
-            padding: 10px 15px;
+            padding: 12px;
             display: flex;
             align-items: center;
             color: #000;
-            font-weight: bold;
-            font-size: 0.75rem;
-            letter-spacing: 2px;
+            font-weight: 900;
+            font-size: 0.9rem;
+            letter-spacing: 3px;
         }
 
         .terminal-body { 
             padding: 20px; 
             display: grid; 
-            grid-template-columns: 1.2fr 1fr; 
-            gap: 25px; 
+            grid-template-columns: 1.3fr 1fr; 
+            gap: 30px; 
         }
 
         /* INPUT PANEL */
         .input-panel { border-right: 1px solid var(--term-dim); padding-right: 25px; }
 
-        .field { margin-bottom: 12px; position: relative; }
-        .field label { display: block; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 5px; color: var(--term-green); opacity: 0.8; }
+        .field { margin-bottom: 15px; position: relative; }
+        .field label { display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
         
-        select, input {
+        input, select {
             background: #000;
-            border: 1px solid var(--term-green);
+            border: 2px solid var(--term-green);
             color: var(--term-green);
-            padding: 12px;
+            padding: 14px;
             width: 100%;
             box-sizing: border-box;
             outline: none;
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             font-family: inherit;
         }
+        input::placeholder { color: var(--term-dim); }
 
-        .stop-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .btn-small { background: #000; color: var(--term-green); border: 1px solid var(--term-green); cursor: pointer; padding: 6px 12px; font-size: 0.7rem; }
+        .stop-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-small { background: #000; color: var(--term-green); border: 2px solid var(--term-green); cursor: pointer; padding: 8px 15px; font-weight: bold; }
         .btn-small:hover { background: var(--term-green); color: #000; }
 
-        /* SUGGESTIONS BOX */
+        /* THE AUTOFILL BOX */
         .suggestions { 
             position: absolute; 
             background: #000; 
-            border: 1px solid var(--term-green); 
+            border: 2px solid var(--term-green); 
             width: 100%; 
-            z-index: 999; 
+            z-index: 9999; 
             list-style: none; 
             padding: 0; 
             margin: 0; 
             display: none; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 30px rgba(0,0,0,1);
         }
-        .suggestions li { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--term-dim); font-size: 0.8rem; }
-        .suggestions li:hover { background: var(--term-dim); }
+        .suggestions li { 
+            padding: 15px; 
+            cursor: pointer; 
+            border-bottom: 1px solid var(--term-dim); 
+            font-size: 1rem;
+            color: var(--term-green);
+        }
+        .suggestions li:hover { background: var(--term-green); color: #000; }
 
-        /* OUTPUT PANEL */
+        /* MANIFEST OUTPUT */
         #manifest {
             background: #000;
             padding: 30px;
-            border: 1px solid var(--term-green);
+            border: 2px solid var(--term-green);
             white-space: pre-wrap;
             line-height: 1.6;
-            font-size: 0.9rem;
-            min-height: 400px;
+            font-size: 1rem;
+            color: var(--term-green);
         }
 
         .total-box { 
-            font-size: 2rem; 
-            border-top: 3px double var(--term-green); 
-            margin-top: 20px; 
-            padding-top: 15px; 
+            font-size: 2.2rem; 
+            border-top: 4px double var(--term-green); 
+            margin-top: 25px; 
+            padding-top: 20px; 
             color: #fff; 
-            text-shadow: 0 0 10px var(--term-green);
+            text-shadow: 0 0 15px #00ff00;
         }
-
-        .log { color: var(--term-warn); font-size: 0.8rem; display: block; margin-top: 6px; }
 
         .btn-copy {
             width: 100%;
@@ -128,85 +127,64 @@
             background: var(--term-green);
             color: #000;
             border: none;
-            padding: 18px;
+            padding: 20px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            font-size: 1.1rem;
         }
-        .btn-copy:active { transform: translateY(2px); }
     </style>
 </head>
 <body onload="init()">
 
 <div class="window">
     <div class="window-header">
-        <span>ETKC_DISPATCH_OS // BUILD_5.5_STABLE</span>
+        <span>EXCLUSIVE_TRANSPORT_KC // SYSTEM_ACTIVE_v5.6</span>
     </div>
 
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field">
-                <label>Origin Address</label>
-                <input type="text" id="origin" placeholder="Pickup location..." oninput="autoSuggest(this)" autocomplete="off">
+                <label>Pickup Location (Stadium/Airport/Address)</label>
+                <input type="text" id="origin" placeholder="Type place name (e.g. Aarowhead)..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
             <div id="stops-container"></div>
             <button class="btn-small" onclick="addStop()">+ ADD STOP</button>
 
-            <div class="field" style="margin-top:15px;">
-                <label>Destination Address</label>
-                <input type="text" id="destination" placeholder="Dropoff location..." oninput="autoSuggest(this)" autocomplete="off">
+            <div class="field" style="margin-top:20px;">
+                <label>Dropoff Location</label>
+                <input type="text" id="destination" placeholder="Destination..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
             <hr style="border-color: var(--term-dim); margin: 30px 0;">
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-                <div class="field">
-                    <label>Service Mode</label>
-                    <select id="service" onchange="calculate()">
-                        <option value="Transfer">Transfer / Point-to-Point</option>
-                        <option value="As-Directed">As-Directed (Hourly+Miles)</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Vehicle Fleet</label>
-                    <select id="vehicle" onchange="calculate()"></select>
-                </div>
-                <div class="field">
-                    <label>Location Rule</label>
-                    <select id="place" onchange="calculate()"></select>
-                </div>
-                <div class="field">
-                    <label>Trip Date</label>
-                    <input type="date" id="tDate" onchange="calculate()">
-                </div>
-                <div class="field">
-                    <label>Pickup Time</label>
-                    <input type="time" id="tTime" value="12:00" onchange="calculate()">
-                </div>
-                <div class="field">
-                    <label>Total Miles (Auto)</label>
-                    <input type="number" id="miles" value="0" step="0.1" oninput="calculate()">
-                </div>
-                <div class="field">
-                    <label>Est. Hours</label>
-                    <input type="number" id="hrs" value="4" step="0.5" oninput="calculate()">
-                </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="field"><label>Service</label><select id="service" onchange="calculate()"><option value="Transfer">Transfer</option><option value="As-Directed">As-Directed</option></select></div>
+                <div class="field"><label>Vehicle</label><select id="vehicle" onchange="calculate()"></select></div>
+                <div class="field"><label>Place</label><select id="place" onchange="calculate()"></select></div>
+                <div class="field"><label>Time</label><input type="time" id="tTime" value="12:00" onchange="calculate()"></div>
+                <div class="field"><label>Calculated Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
+                <div class="field"><label>Total Hours</label><input type="number" id="hrs" value="4" step="0.5" oninput="calculate()"></div>
             </div>
         </div>
 
         <div>
-            <div id="manifest">INITIALIZING SYSTEM ENGINES...</div>
-            <button class="btn-copy" onclick="copyQuote()">[ COPY QUOTE TO CLIPBOARD ]</button>
+            <div id="manifest">SYSTEM_INITIALIZED_AND_READY...</div>
+            <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
 </div>
 
 <script>
     const API_KEY = 'b1SA9FrzBt8C8gp-suH5-96rPUpvr8buwdNKr3FcZ-0';
+    
+    // CENTER COORDINATES FOR KANSAS CITY (Prioritizes local POIs)
+    const KC_LAT = 39.0997;
+    const KC_LON = -94.5786;
 
     const URLS = {
         rates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1067121759&single=true&output=csv',
@@ -216,12 +194,14 @@
     };
 
     let DB = { rates: [], date: [], time: [], place: [] };
-    let stopCount = 0;
 
-    // --- MILEAGE ENGINE (HERE MAPS) ---
+    // --- AUTOFILL ENGINE ---
     async function autoSuggest(inputElement) {
         if (inputElement.value.length < 3) return;
-        const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=39.0997,-94.5786&limit=5&q=${encodeURIComponent(inputElement.value)}&apiKey=${API_KEY}`;
+        
+        // Search centered on Kansas City with a high limit for POIs
+        const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(inputElement.value)}&apiKey=${API_KEY}`;
+        
         try {
             const resp = await fetch(url);
             const data = await resp.json();
@@ -232,26 +212,26 @@
             data.items.forEach(item => {
                 if (item.title) {
                     const li = document.createElement('li');
-                    li.innerText = item.title;
+                    // Show Place Title + Address if available
+                    li.innerText = item.address ? `${item.title} (${item.address.label})` : item.title;
                     li.onclick = () => {
                         inputElement.value = item.title;
                         list.style.display = 'none';
-                        getDistance();
+                        getDistance(); // Trigger mileage update
                     };
                     list.appendChild(li);
                 }
             });
-        } catch (e) { console.error("Suggest error"); }
+        } catch (e) { console.error("Autofill Error"); }
     }
 
     function addStop() {
-        stopCount++;
         const container = document.getElementById('stops-container');
         const div = document.createElement('div');
         div.className = 'field stop-row';
         div.innerHTML = `
             <div style="flex-grow:1; position:relative;">
-                <input type="text" id="stop-${stopCount}" placeholder="Extra Stop Address" oninput="autoSuggest(this)" autocomplete="off">
+                <input type="text" placeholder="Extra Stop..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
             <button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>
@@ -265,7 +245,7 @@
         if (!origin || !destination) return;
 
         const getCoords = async (addr) => {
-            const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`;
+            const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`;
             const res = await fetch(url);
             const d = await res.json();
             return d.items[0]?.position;
@@ -276,27 +256,27 @@
             const end = await getCoords(destination);
             if (!start || !end) return;
             
-            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}&return=summary&apiKey=${API_KEY}`;
+            let routeUrl = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}&return=summary&apiKey=${API_KEY}`;
             
-            const stopInputs = document.querySelectorAll('[id^="stop-"]');
+            const stopInputs = document.querySelectorAll('#stops-container input');
             for (let input of stopInputs) {
                 if (input.value) {
                     const s = await getCoords(input.value);
-                    if (s) url += `&via=${s.lat},${s.lng}`;
+                    if (s) routeUrl += `&via=${s.lat},${s.lng}`;
                 }
             }
 
-            const routeResp = await fetch(url);
+            const routeResp = await fetch(routeUrl);
             const routeData = await routeResp.json();
             const meters = routeData.routes[0].sections.reduce((acc, section) => acc + section.summary.length, 0);
             const miles = meters * 0.000621371;
             
             document.getElementById('miles').value = miles.toFixed(1);
             calculate();
-        } catch (e) { console.error("Routing calculation failed"); }
+        } catch (e) { console.error("Routing failed"); }
     }
 
-    // --- CORE CALCULATION ENGINE ---
+    // --- CALCULATION LOGIC ---
     async function fetchData(url) {
         const r = await fetch(url);
         const d = await r.text();
@@ -308,12 +288,7 @@
             const [rData, dData, tData, pData] = await Promise.all([
                 fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place)
             ]);
-
-            DB.rates = rData.filter(x => x[0]).map(x => ({ 
-                name: x[0].trim(), hr: parseFloat(x[1]), min: parseFloat(x[2]), allowance: parseFloat(x[3]), 
-                baseMile: parseFloat(x[4]), over: parseFloat(x[5]), grat: parseFloat(x[6])/100, 
-                fuel: parseFloat(x[7])/100, admin: parseFloat(x[8])/100 
-            }));
+            DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1]), min: parseFloat(x[2]), allowance: parseFloat(x[3]), baseMile: parseFloat(x[4]), over: parseFloat(x[5]), grat: parseFloat(x[6])/100, fuel: parseFloat(x[7])/100, admin: parseFloat(x[8])/100 }));
             DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3]), multi: parseFloat(x[4]) }));
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3]) }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1]), min: parseFloat(x[2]) }));
@@ -323,15 +298,15 @@
             const pSel = document.getElementById('place');
             DB.place.forEach(p => { pSel.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
 
-            document.getElementById('manifest').innerHTML = "> SYSTEM_ONLINE: DATA_SYNC_COMPLETE";
+            document.getElementById('manifest').innerHTML = "> SYSTEM_ONLINE: DATA_SYNC_OK";
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "> FATAL_ERROR: DB_CONNECTION_LOST"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "> FATAL_ERROR: DB_OFFLINE"; }
     }
 
     function calculate() {
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value);
         const p = DB.place.find(x => x.name === document.getElementById('place').value);
-        const serviceMode = document.getElementById('service').value;
+        const service = document.getElementById('service').value;
         const dVal = document.getElementById('tDate').value;
         const tVal = document.getElementById('tTime').value;
         let hrs = parseFloat(document.getElementById('hrs').value) || 0;
@@ -339,57 +314,44 @@
 
         let logs = [];
         let dateMulti = 1.0;
-
-        // 1. BASE RATE (Hourly vs. Mileage)
         let mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
         let hourlyTotal = 0;
 
-        if (serviceMode === "As-Directed") {
+        if (service === "As-Directed") {
             let effectiveHrs = Math.max(hrs, v.min, p.min);
             if (dVal) {
                 const dRule = DB.date.find(r => dVal >= r.s && dVal <= r.e);
                 if (dRule) {
                     dateMulti = dRule.multi;
                     effectiveHrs = Math.max(effectiveHrs, dRule.min);
-                    if (dRule.multi > 1) logs.push(`>> EVENT_SURCHARGE: ${dRule.name} Active`);
+                    if (dRule.multi > 1) logs.push(`>> EVENT: ${dRule.name} (+${((dRule.multi-1)*100).toFixed(0)}%)`);
                 }
             }
             hourlyTotal = effectiveHrs * v.hr;
-            logs.push(`>> MODE: AS-DIRECTED (${effectiveHrs}h Applied)`);
-        } else {
-            logs.push(`>> MODE: TRANSFER / POINT-TO-POINT`);
         }
 
-        // 2. SURCHARGE LOGIC
-        const subtotalBase = (hourlyTotal + mileageCost) * dateMulti;
-        const adminFee = Math.round(subtotalBase * v.admin * 100) / 100;
-        const fuelFee = Math.round(subtotalBase * v.fuel * 100) / 100;
-        const gratFee = Math.round(subtotalBase * v.grat * 100) / 100;
-
+        const subtotal = (hourlyTotal + mileageCost) * dateMulti;
+        const admin = Math.round(subtotal * v.admin * 100) / 100;
+        const fuel = Math.round(subtotal * v.fuel * 100) / 100;
+        const grat = Math.round(subtotal * v.grat * 100) / 100;
         const tRule = DB.time.find(r => tVal >= r.s && tVal <= r.e);
-        const timeFee = tRule ? tRule.fee : 0;
-        if (timeFee > 0) logs.push(`>> TIME_SURCHARGE: Early/Late Pickup ($${timeFee})`);
-        if (p.fee > 0) logs.push(`>> LOCATION_FEE: ${p.name} ($${p.fee})`);
+        const total = subtotal + admin + fuel + grat + (tRule ? tRule.fee : 0) + p.fee;
 
-        const total = subtotalBase + adminFee + fuelFee + gratFee + timeFee + p.fee;
-
-        // 3. RENDER MANIFEST
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
 ------------------------------------------------------------
 VEHICLE:  ${v.name.toUpperCase()}
-ROUTE:    ${miles.toFixed(1)} miles calculated
+ROUTE:    ${miles.toFixed(1)} miles
 ------------------------------------------------------------
-BASE RATE:           $${subtotalBase.toFixed(2)}
-ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${adminFee.toFixed(2)}
-FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuelFee.toFixed(2)}
-STD GRAT (${(v.grat*100).toFixed(0)}%):        $${gratFee.toFixed(2)}
-OTHER SURCHARGES:    $${(timeFee + p.fee).toFixed(2)}
+BASE RATE:           $${subtotal.toFixed(2)}
+ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
+FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
+STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
+OTHER FEES:          $${((tRule ? tRule.fee : 0) + p.fee).toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
 ------------------------------------------------------------`;
-
         document.getElementById('manifest').innerHTML = manifest;
     }
 
@@ -397,12 +359,11 @@ ${logs.map(l => `<span class="log">${l}</span>`).join('')}
         const text = document.getElementById('manifest').innerText;
         navigator.clipboard.writeText(text).then(() => {
             const btn = document.querySelector('.btn-copy');
-            btn.innerText = "COPIED TO CLIPBOARD";
-            setTimeout(() => btn.innerText = "[ COPY QUOTE TO CLIPBOARD ]", 2000);
+            btn.innerText = "COPIED TO CLIPBOARD!";
+            setTimeout(() => btn.innerText = "[ COPY MANIFEST TO CLIPBOARD ]", 2000);
         });
     }
 
-    // Close suggestions if clicked outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.field')) {
             document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none');
