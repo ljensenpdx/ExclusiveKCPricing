@@ -122,13 +122,13 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // DISPATCH_v5.8_STABLE</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // GARAGE_TO_GARAGE_v5.9</div>
 
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field">
                 <label>Pickup Location</label>
-                <input type="text" id="origin" placeholder="Type Stadium, Airport, or Address..." oninput="autoSuggest(this)" autocomplete="off">
+                <input type="text" id="origin" placeholder="Pickup Address..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
@@ -137,7 +137,7 @@
 
             <div class="field">
                 <label>Dropoff Location</label>
-                <input type="text" id="destination" placeholder="Destination..." oninput="autoSuggest(this)" autocomplete="off">
+                <input type="text" id="destination" placeholder="Dropoff Address..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
@@ -148,20 +148,20 @@
                     <label>Service Mode</label>
                     <select id="service" onchange="calculate()">
                         <option value="Transfer">Transfer (Mileage Only)</option>
-                        <option value="Hourly">Hourly (Duration + Miles)</option>
+                        <option value="Hourly">Hourly (Garage-to-Garage)</option>
                     </select>
                 </div>
                 <div class="field"><label>Vehicle Fleet</label><select id="vehicle" onchange="calculate()"></select></div>
                 <div class="field"><label>Location Fee</label><select id="place" onchange="calculate()"></select></div>
                 <div class="field"><label>Trip Date</label><input type="date" id="tDate" onchange="calculate()"></div>
                 <div class="field"><label>Pickup Time</label><input type="time" id="tTime" value="12:00" onchange="calculate()"></div>
-                <div class="field"><label>Total Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
-                <div class="field"><label>Total Hours (Auto)</label><input type="number" id="hrs" value="0" step="0.1" oninput="calculate()"></div>
+                <div class="field"><label>Trip Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
+                <div class="field"><label>Total Billable Hours</label><input type="number" id="hrs" value="0" step="0.1" oninput="calculate()"></div>
             </div>
         </div>
 
         <div>
-            <div id="manifest">SYSTEM_BOOTING...</div>
+            <div id="manifest">SYSTEM_READY...</div>
             <button class="btn-copy" onclick="copyQuote()">[ COPY QUOTE TO CLIPBOARD ]</button>
         </div>
     </div>
@@ -169,6 +169,7 @@
 
 <script>
     const API_KEY = 'b1SA9FrzBt8C8gp-suH5-96rPUpvr8buwdNKr3FcZ-0';
+    const GARAGE_ADDR = "1 Eaton St Suite A, Kansas City, KS 66103";
     const KC_LAT = 39.0997, KC_LON = -94.5786;
 
     const URLS = {
@@ -180,7 +181,6 @@
 
     let DB = { rates: [], date: [], time: [], place: [] };
 
-    // --- MILEAGE & DURATION ENGINE ---
     async function autoSuggest(el) {
         if (el.value.length < 3) return;
         const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(el.value)}&apiKey=${API_KEY}`;
@@ -207,34 +207,51 @@
     }
 
     async function getDistance() {
-        const oAddress = document.getElementById('origin').value, dAddress = document.getElementById('destination').value;
-        if (!oAddress || !dAddress) return;
+        const oAddr = document.getElementById('origin').value, dAddr = document.getElementById('destination').value;
+        if (!oAddr || !dAddr) return;
+
         const gc = async (a) => {
             const r = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(a)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`);
             const data = await r.json(); return data.items[0]?.position;
         };
-        try {
-            const start = await gc(oAddress), end = await gc(dAddress); if (!start || !end) return;
-            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}&return=summary&apiKey=${API_KEY}`;
-            
-            const stops = document.querySelectorAll('#stops-container input');
-            for(let i of stops) { if(i.value) { const s = await gc(i.value); if(s) url += `&via=${s.lat},${s.lng}`; } }
 
+        const getLegSeconds = async (sPos, ePos, waypoints = []) => {
+            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${sPos.lat},${sPos.lng}&destination=${ePos.lat},${ePos.lng}&return=summary&apiKey=${API_KEY}`;
+            waypoints.forEach(w => { url += `&via=${w.lat},${w.lng}`; });
             const res = await fetch(url); const rd = await res.json();
-            
-            // Calculate total meters and total seconds
-            const meters = rd.routes[0].sections.reduce((a, s) => a + s.summary.length, 0);
-            const seconds = rd.routes[0].sections.reduce((a, s) => a + s.summary.duration, 0);
+            return {
+                sec: rd.routes[0].sections.reduce((a, s) => a + s.summary.duration, 0),
+                meters: rd.routes[0].sections.reduce((a, s) => a + s.summary.length, 0)
+            };
+        };
 
-            // Update UI
-            document.getElementById('miles').value = (meters * 0.000621371).toFixed(1);
-            document.getElementById('hrs').value = (seconds / 3600).toFixed(1); // Convert seconds to hours
+        try {
+            const garage = await gc(GARAGE_ADDR);
+            const start = await gc(oAddr);
+            const end = await gc(dAddr);
+            
+            // Get stops
+            const stopCoords = [];
+            const stops = document.querySelectorAll('#stops-container input');
+            for(let i of stops) { if(i.value) { const s = await gc(i.value); if(s) stopCoords.push(s); } }
+
+            // LEG 1: Garage to Pickup
+            const leg1 = await getLegSeconds(garage, start);
+            // LEG 2: Pickup to Dropoff (incl. stops)
+            const leg2 = await getLegSeconds(start, end, stopCoords);
+            // LEG 3: Dropoff to Garage
+            const leg3 = await getLegSeconds(end, garage);
+
+            const totalSeconds = leg1.sec + leg2.sec + leg3.sec;
+            const tripMiles = leg2.meters * 0.000621371;
+
+            document.getElementById('miles').value = tripMiles.toFixed(1);
+            document.getElementById('hrs').value = (totalSeconds / 3600).toFixed(1);
             
             calculate();
         } catch (e) { console.error("Routing error"); }
     }
 
-    // --- DATA & CALCULATION ENGINE ---
     async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
 
     async function init() {
@@ -248,7 +265,7 @@
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
             const pS = document.getElementById('place'); DB.place.forEach(p => { pS.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "> SYSTEM_ERROR: CHECK_CSV_LINKS"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "> SYSTEM_ERROR: DATA_FETCH_FAILED"; }
     }
 
     function calculate() {
@@ -259,32 +276,33 @@
         const tVal = document.getElementById('tTime').value;
         
         let miles = parseFloat(document.getElementById('miles').value) || 0;
-        let inputHrs = parseFloat(document.getElementById('hrs').value) || 0;
+        let driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
         
         let logs = [], dateMulti = 1.0;
 
-        // 1. BASE MATH
-        let mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
+        // --- CALCULATION LOGIC ---
+        let mileageCost = 0;
         let hourlyTotal = 0;
 
         if (mode === "Hourly") {
-            // APPLY COLUMN C FLOOR (MinHours) or Place Minimums
-            let billingHrs = Math.max(inputHrs, v.min, p.min);
-            
-            // Check for Event Minimums
+            // ONLY HOURS, NO MILES
+            mileageCost = 0;
+            let billingHrs = Math.max(driveHrs, v.min, p.min);
             if (dVal) { 
                 const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); 
                 if (dR) { 
                     dateMulti = dR.multi; 
                     billingHrs = Math.max(billingHrs, dR.min); 
-                    if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} Active`); 
+                    if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER ACTIVE`); 
                 } 
             }
-
-            hourlyTotal = billingHrs * v.hr; // Drive duration * Hourly Rate (Col B)
-            logs.push(`>> BILLING: ${billingHrs.toFixed(1)}h @ $${v.hr}/hr`);
+            hourlyTotal = billingHrs * v.hr;
+            logs.push(`>> BILLING: ${billingHrs.toFixed(1)}h (GARAGE-TO-GARAGE) @ $${v.hr}/hr`);
         } else {
-            logs.push(`>> MODE: TRANSFER / POINT-TO-POINT`);
+            // TRANSFER: MILEAGE ONLY
+            mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
+            hourlyTotal = 0;
+            logs.push(`>> MODE: TRANSFER (MILEAGE-BASED)`);
         }
 
         const sub = (hourlyTotal + mileageCost) * dateMulti;
@@ -297,13 +315,12 @@
 ------------------------------------------------------------
 MODE:     ${mode.toUpperCase()}
 VEHICLE:  ${v.name.toUpperCase()}
-ROUTE:    ${miles.toFixed(1)} miles | ${inputHrs.toFixed(1)} drive hours
 ------------------------------------------------------------
 BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
-STD GRAT (${(v.grat*100).toFixed(0)}%):        $${gratFee = grat.toFixed(2)}
-OTHER FEES:          $${((tR ? tR.fee : 0) + p.fee).toFixed(2)}
+STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
+OTHER SURCHARGES:    $${((tR ? tR.fee : 0) + p.fee).toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
@@ -312,7 +329,7 @@ ${logs.map(l => `<span class="log">${l}</span>`).join('')}
     }
 
     function copyQuote() {
-        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('MANIFEST COPIED'); });
+        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('COPIED!'); });
     }
 
     document.addEventListener('click', (e) => { if (!e.target.closest('.field')) document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none'); });
