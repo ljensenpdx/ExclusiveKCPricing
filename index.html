@@ -8,41 +8,36 @@
     <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
     <style>
         :root {
-            --bg-dark: #000000;
-            --window-bg: #050505;
-            --term-green: #00ff00; /* NEON GREEN */
-            --term-dim: #003300;
-            --term-warn: #ffff00;
-            --border: #00ff00;
+            --bg: #000000;
+            --green: #00ff00; /* BRIGHT NEON GREEN */
+            --green-dim: #004400;
+            --warn: #ffff00;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--term-green);
+            background-color: var(--bg);
+            color: var(--green);
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            text-transform: uppercase;
         }
 
-        /* TERMINAL WINDOW */
         .window {
             width: 98%;
             max-width: 1300px;
-            background: var(--window-bg);
-            border: 3px solid var(--term-green);
-            border-radius: 2px;
+            background: var(--bg);
+            border: 3px solid var(--green);
             box-shadow: 0 0 40px rgba(0, 255, 0, 0.2);
             overflow: hidden;
         }
 
         .window-header {
-            background: var(--term-green);
-            padding: 12px;
-            display: flex;
-            align-items: center;
+            background: var(--green);
+            padding: 10px 15px;
             color: #000;
             font-weight: 900;
             font-size: 0.9rem;
@@ -56,124 +51,112 @@
             gap: 30px; 
         }
 
-        /* INPUT PANEL */
-        .input-panel { border-right: 1px solid var(--term-dim); padding-right: 25px; }
+        .input-panel { border-right: 2px solid var(--green-dim); padding-right: 25px; }
 
         .field { margin-bottom: 15px; position: relative; }
-        .field label { display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
+        .field label { display: block; font-size: 0.75rem; margin-bottom: 8px; font-weight: bold; }
         
         input, select {
             background: #000;
-            border: 2px solid var(--term-green);
-            color: var(--term-green);
-            padding: 14px;
+            border: 2px solid var(--green);
+            color: var(--green);
+            padding: 12px;
             width: 100%;
             box-sizing: border-box;
             outline: none;
             font-size: 1.1rem;
             font-family: inherit;
         }
-        input::placeholder { color: var(--term-dim); }
 
-        .stop-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .btn-small { background: #000; color: var(--term-green); border: 2px solid var(--term-green); cursor: pointer; padding: 8px 15px; font-weight: bold; }
-        .btn-small:hover { background: var(--term-green); color: #000; }
+        .btn-small { background: #000; color: var(--green); border: 2px solid var(--green); cursor: pointer; padding: 5px 15px; font-weight: bold; margin-bottom: 10px;}
+        .btn-small:hover { background: var(--green); color: #000; }
 
-        /* THE AUTOFILL BOX */
+        /* AUTOFILL BOX */
         .suggestions { 
             position: absolute; 
             background: #000; 
-            border: 2px solid var(--term-green); 
+            border: 2px solid var(--green); 
             width: 100%; 
             z-index: 9999; 
             list-style: none; 
             padding: 0; 
             margin: 0; 
             display: none; 
-            box-shadow: 0 15px 30px rgba(0,0,0,1);
         }
-        .suggestions li { 
-            padding: 15px; 
-            cursor: pointer; 
-            border-bottom: 1px solid var(--term-dim); 
-            font-size: 1rem;
-            color: var(--term-green);
-        }
-        .suggestions li:hover { background: var(--term-green); color: #000; }
+        .suggestions li { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--green-dim); font-size: 1rem; }
+        .suggestions li:hover { background: var(--green); color: #000; }
 
-        /* MANIFEST OUTPUT */
         #manifest {
             background: #000;
-            padding: 30px;
-            border: 2px solid var(--term-green);
+            padding: 25px;
+            border: 2px solid var(--green);
             white-space: pre-wrap;
-            line-height: 1.6;
-            font-size: 1rem;
-            color: var(--term-green);
+            line-height: 1.5;
+            font-size: 0.95rem;
         }
 
         .total-box { 
             font-size: 2.2rem; 
-            border-top: 4px double var(--term-green); 
-            margin-top: 25px; 
-            padding-top: 20px; 
+            border-top: 4px double var(--green); 
+            margin-top: 20px; 
+            padding-top: 15px; 
             color: #fff; 
-            text-shadow: 0 0 15px #00ff00;
+            text-shadow: 0 0 10px #00ff00;
         }
 
         .btn-copy {
             width: 100%;
-            margin-top: 25px;
-            background: var(--term-green);
+            margin-top: 20px;
+            background: var(--green);
             color: #000;
             border: none;
             padding: 20px;
             cursor: pointer;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            font-size: 1.1rem;
+            letter-spacing: 2px;
+            font-size: 1rem;
         }
+        .log { color: var(--warn); font-size: 0.8rem; display: block; }
     </style>
 </head>
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">
-        <span>EXCLUSIVE_TRANSPORT_KC // SYSTEM_ACTIVE_v5.6</span>
-    </div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // DISPATCH_v5.7_STABLE</div>
 
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field">
-                <label>Pickup Location (Stadium/Airport/Address)</label>
-                <input type="text" id="origin" placeholder="Type place name (e.g. Aarowhead)..." oninput="autoSuggest(this)" autocomplete="off">
+                <label>Pickup Location (POIs Active)</label>
+                <input type="text" id="origin" placeholder="Type Stadium, Airport, or Address..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
             <div id="stops-container"></div>
             <button class="btn-small" onclick="addStop()">+ ADD STOP</button>
 
-            <div class="field" style="margin-top:20px;">
+            <div class="field">
                 <label>Dropoff Location</label>
                 <input type="text" id="destination" placeholder="Destination..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
-            <hr style="border-color: var(--term-dim); margin: 30px 0;">
+            <hr style="border-color: var(--green-dim); margin: 25px 0;">
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                 <div class="field"><label>Service</label><select id="service" onchange="calculate()"><option value="Transfer">Transfer</option><option value="As-Directed">As-Directed</option></select></div>
                 <div class="field"><label>Vehicle</label><select id="vehicle" onchange="calculate()"></select></div>
-                <div class="field"><label>Place</label><select id="place" onchange="calculate()"></select></div>
+                <div class="field"><label>Place Rule</label><select id="place" onchange="calculate()"></select></div>
+                <div class="field"><label>Date</label><input type="date" id="tDate" onchange="calculate()"></div>
                 <div class="field"><label>Time</label><input type="time" id="tTime" value="12:00" onchange="calculate()"></div>
-                <div class="field"><label>Calculated Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
-                <div class="field"><label>Total Hours</label><input type="number" id="hrs" value="4" step="0.5" oninput="calculate()"></div>
+                <div class="field"><label>Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
+                <div class="field"><label>Hours</label><input type="number" id="hrs" value="4" step="0.5" oninput="calculate()"></div>
             </div>
         </div>
 
         <div>
-            <div id="manifest">SYSTEM_INITIALIZED_AND_READY...</div>
+            <div id="manifest">SYSTEM_BOOTING...</div>
             <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
@@ -181,10 +164,7 @@
 
 <script>
     const API_KEY = 'b1SA9FrzBt8C8gp-suH5-96rPUpvr8buwdNKr3FcZ-0';
-    
-    // CENTER COORDINATES FOR KANSAS CITY (Prioritizes local POIs)
-    const KC_LAT = 39.0997;
-    const KC_LON = -94.5786;
+    const KC_LAT = 39.0997, KC_LON = -94.5786;
 
     const URLS = {
         rates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1067121759&single=true&output=csv',
@@ -195,159 +175,100 @@
 
     let DB = { rates: [], date: [], time: [], place: [] };
 
-    // --- AUTOFILL ENGINE ---
-    async function autoSuggest(inputElement) {
-        if (inputElement.value.length < 3) return;
-        
-        // Search centered on Kansas City with a high limit for POIs
-        const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(inputElement.value)}&apiKey=${API_KEY}`;
-        
+    async function autoSuggest(el) {
+        if (el.value.length < 3) return;
+        const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(el.value)}&apiKey=${API_KEY}`;
         try {
-            const resp = await fetch(url);
-            const data = await resp.json();
-            const list = inputElement.nextElementSibling;
-            list.innerHTML = '';
-            list.style.display = 'block';
-
-            data.items.forEach(item => {
+            const r = await fetch(url); const d = await r.json();
+            const list = el.nextElementSibling; list.innerHTML = ''; list.style.display = 'block';
+            d.items.forEach(item => {
                 if (item.title) {
                     const li = document.createElement('li');
-                    // Show Place Title + Address if available
                     li.innerText = item.address ? `${item.title} (${item.address.label})` : item.title;
-                    li.onclick = () => {
-                        inputElement.value = item.title;
-                        list.style.display = 'none';
-                        getDistance(); // Trigger mileage update
-                    };
+                    li.onclick = () => { el.value = item.title; list.style.display = 'none'; getDistance(); };
                     list.appendChild(li);
                 }
             });
-        } catch (e) { console.error("Autofill Error"); }
+        } catch (e) { console.error("Suggest Error"); }
     }
 
     function addStop() {
         const container = document.getElementById('stops-container');
         const div = document.createElement('div');
-        div.className = 'field stop-row';
-        div.innerHTML = `
-            <div style="flex-grow:1; position:relative;">
-                <input type="text" placeholder="Extra Stop..." oninput="autoSuggest(this)" autocomplete="off">
-                <ul class="suggestions"></ul>
-            </div>
-            <button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>
-        `;
+        div.className = 'field'; div.style.display = 'flex'; div.style.gap = '10px';
+        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
         container.appendChild(div);
     }
 
     async function getDistance() {
-        const origin = document.getElementById('origin').value;
-        const destination = document.getElementById('destination').value;
-        if (!origin || !destination) return;
-
-        const getCoords = async (addr) => {
-            const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`;
-            const res = await fetch(url);
-            const d = await res.json();
-            return d.items[0]?.position;
+        const o = document.getElementById('origin').value, d = document.getElementById('destination').value;
+        if (!o || !d) return;
+        const gc = async (a) => {
+            const r = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(a)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`);
+            const data = await r.json(); return data.items[0]?.position;
         };
-
         try {
-            const start = await getCoords(origin);
-            const end = await getCoords(destination);
-            if (!start || !end) return;
-            
-            let routeUrl = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}&return=summary&apiKey=${API_KEY}`;
-            
-            const stopInputs = document.querySelectorAll('#stops-container input');
-            for (let input of stopInputs) {
-                if (input.value) {
-                    const s = await getCoords(input.value);
-                    if (s) routeUrl += `&via=${s.lat},${s.lng}`;
-                }
-            }
-
-            const routeResp = await fetch(routeUrl);
-            const routeData = await routeResp.json();
-            const meters = routeData.routes[0].sections.reduce((acc, section) => acc + section.summary.length, 0);
-            const miles = meters * 0.000621371;
-            
+            const start = await gc(o), end = await gc(d); if (!start || !end) return;
+            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}&return=summary&apiKey=${API_KEY}`;
+            document.querySelectorAll('#stops-container input').forEach(async (i) => { if(i.value){ const s = await gc(i.value); if(s) url += `&via=${s.lat},${s.lng}`; }});
+            const res = await fetch(url); const rd = await res.json();
+            const miles = (rd.routes[0].sections.reduce((a, s) => a + s.summary.length, 0)) * 0.000621371;
             document.getElementById('miles').value = miles.toFixed(1);
             calculate();
-        } catch (e) { console.error("Routing failed"); }
+        } catch (e) { console.error("Route error"); }
     }
 
-    // --- CALCULATION LOGIC ---
-    async function fetchData(url) {
-        const r = await fetch(url);
-        const d = await r.text();
-        return d.split('\n').slice(1).map(row => row.split(','));
-    }
+    async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
 
     async function init() {
         try {
-            const [rData, dData, tData, pData] = await Promise.all([
-                fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place)
-            ]);
-            DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1]), min: parseFloat(x[2]), allowance: parseFloat(x[3]), baseMile: parseFloat(x[4]), over: parseFloat(x[5]), grat: parseFloat(x[6])/100, fuel: parseFloat(x[7])/100, admin: parseFloat(x[8])/100 }));
-            DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3]), multi: parseFloat(x[4]) }));
-            DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3]) }));
-            DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1]), min: parseFloat(x[2]) }));
+            const [rData, dData, tData, pData] = await Promise.all([fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place)]);
+            DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1])||0, min: parseFloat(x[2])||0, allowance: parseFloat(x[3])||0, baseMile: parseFloat(x[4])||0, over: parseFloat(x[5])||0, grat: (parseFloat(x[6])||0)/100, fuel: (parseFloat(x[7])||0)/100, admin: (parseFloat(x[8])||0)/100 }));
+            DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3])||0, multi: parseFloat(x[4])||1 }));
+            DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
+            DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
 
-            const vSel = document.getElementById('vehicle');
-            DB.rates.forEach(v => { vSel.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
-            const pSel = document.getElementById('place');
-            DB.place.forEach(p => { pSel.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
-
-            document.getElementById('manifest').innerHTML = "> SYSTEM_ONLINE: DATA_SYNC_OK";
+            const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
+            const pS = document.getElementById('place'); DB.place.forEach(p => { pS.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "> FATAL_ERROR: DB_OFFLINE"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "> FATAL_ERROR: CHECK_SPREADSHEET_URLS"; console.error(e); }
     }
 
     function calculate() {
-        const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value);
-        const p = DB.place.find(x => x.name === document.getElementById('place').value);
-        const service = document.getElementById('service').value;
-        const dVal = document.getElementById('tDate').value;
-        const tVal = document.getElementById('tTime').value;
-        let hrs = parseFloat(document.getElementById('hrs').value) || 0;
-        let miles = parseFloat(document.getElementById('miles').value) || 0;
+        const vName = document.getElementById('vehicle').value;
+        const pName = document.getElementById('place').value;
+        const v = DB.rates.find(x => x.name === vName) || DB.rates[0];
+        const p = DB.place.find(x => x.name === pName) || {name:"N/A", fee:0, min:0};
+        
+        const service = document.getElementById('service').value, dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
+        let hrs = parseFloat(document.getElementById('hrs').value) || 0, miles = parseFloat(document.getElementById('miles').value) || 0;
+        let logs = [], dateMulti = 1.0;
 
-        let logs = [];
-        let dateMulti = 1.0;
         let mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
         let hourlyTotal = 0;
-
         if (service === "As-Directed") {
-            let effectiveHrs = Math.max(hrs, v.min, p.min);
-            if (dVal) {
-                const dRule = DB.date.find(r => dVal >= r.s && dVal <= r.e);
-                if (dRule) {
-                    dateMulti = dRule.multi;
-                    effectiveHrs = Math.max(effectiveHrs, dRule.min);
-                    if (dRule.multi > 1) logs.push(`>> EVENT: ${dRule.name} (+${((dRule.multi-1)*100).toFixed(0)}%)`);
-                }
-            }
-            hourlyTotal = effectiveHrs * v.hr;
+            let effHrs = Math.max(hrs, v.min, p.min);
+            if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; effHrs = Math.max(effHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT_SURCHARGE: ${dR.name}`); } }
+            hourlyTotal = effHrs * v.hr;
+            logs.push(`>> MODE: AS-DIRECTED (${effHrs}h @ $${v.hr}/hr)`);
         }
 
-        const subtotal = (hourlyTotal + mileageCost) * dateMulti;
-        const admin = Math.round(subtotal * v.admin * 100) / 100;
-        const fuel = Math.round(subtotal * v.fuel * 100) / 100;
-        const grat = Math.round(subtotal * v.grat * 100) / 100;
-        const tRule = DB.time.find(r => tVal >= r.s && tVal <= r.e);
-        const total = subtotal + admin + fuel + grat + (tRule ? tRule.fee : 0) + p.fee;
+        const sub = (hourlyTotal + mileageCost) * dateMulti;
+        const admin = Math.round(sub * v.admin * 100) / 100, fuel = Math.round(sub * v.fuel * 100) / 100, grat = Math.round(sub * v.grat * 100) / 100;
+        const tR = DB.time.find(r => tVal >= r.s && tVal <= r.e);
+        const total = sub + admin + fuel + grat + (tR ? tR.fee : 0) + p.fee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
 ------------------------------------------------------------
 VEHICLE:  ${v.name.toUpperCase()}
-ROUTE:    ${miles.toFixed(1)} miles
+MILES:    ${miles.toFixed(1)}
 ------------------------------------------------------------
-BASE RATE:           $${subtotal.toFixed(2)}
+BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
-OTHER FEES:          $${((tRule ? tRule.fee : 0) + p.fee).toFixed(2)}
+OTHER FEES:          $${((tR ? tR.fee : 0) + p.fee).toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
@@ -356,20 +277,10 @@ ${logs.map(l => `<span class="log">${l}</span>`).join('')}
     }
 
     function copyQuote() {
-        const text = document.getElementById('manifest').innerText;
-        navigator.clipboard.writeText(text).then(() => {
-            const btn = document.querySelector('.btn-copy');
-            btn.innerText = "COPIED TO CLIPBOARD!";
-            setTimeout(() => btn.innerText = "[ COPY MANIFEST TO CLIPBOARD ]", 2000);
-        });
+        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('COPIED!'); });
     }
 
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.field')) {
-            document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none');
-        }
-    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('.field')) document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none'); });
 </script>
-
 </body>
 </html>
