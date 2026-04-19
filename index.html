@@ -7,149 +7,37 @@
     <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
     <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
     <style>
-        :root {
-            --bg: #000000;
-            --green: #00ff00; 
-            --green-dim: #004400;
-            --warn: #ffff00;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--green);
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            text-transform: uppercase;
-        }
-
-        .window {
-            width: 98%;
-            max-width: 1300px;
-            background: var(--bg);
-            border: 3px solid var(--green);
-            box-shadow: 0 0 50px rgba(0, 255, 0, 0.2);
-        }
-
-        .window-header {
-            background: var(--green);
-            padding: 10px 15px;
-            color: #000;
-            font-weight: 900;
-            font-size: 0.9rem;
-            letter-spacing: 3px;
-        }
-
-        .terminal-body { 
-            padding: 20px; 
-            display: grid; 
-            grid-template-columns: 1.3fr 1fr; 
-            gap: 30px; 
-        }
-
-        .input-panel { border-right: 2px solid var(--green-dim); padding-right: 25px; }
-
+        :root { --bg: #000; --green: #0f0; --dim: #004400; --warn: #ff0; }
+        body { background: var(--bg); color: var(--green); font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; text-transform: uppercase; }
+        .window { width: 98%; max-width: 1300px; background: var(--bg); border: 3px solid var(--green); box-shadow: 0 0 50px rgba(0, 255, 0, 0.2); }
+        .window-header { background: var(--green); padding: 10px 15px; color: #000; font-weight: 900; font-size: 0.9rem; letter-spacing: 3px; }
+        .terminal-body { padding: 20px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; }
+        .input-panel { border-right: 2px solid var(--dim); padding-right: 25px; }
         .field { margin-bottom: 15px; position: relative; }
         .field label { display: block; font-size: 0.75rem; margin-bottom: 8px; font-weight: bold; }
-        
-        input, select {
-            background: #000;
-            border: 2px solid var(--green);
-            color: var(--green);
-            padding: 12px;
-            width: 100%;
-            box-sizing: border-box;
-            outline: none;
-            font-size: 1.1rem;
-            font-family: inherit;
-        }
-
+        input, select { background: #000; border: 2px solid var(--green); color: var(--green); padding: 12px; width: 100%; box-sizing: border-box; outline: none; font-size: 1.1rem; font-family: inherit; }
         .btn-small { background: #000; color: var(--green); border: 2px solid var(--green); cursor: pointer; padding: 5px 15px; font-weight: bold; margin-bottom: 10px;}
-        .btn-small:hover { background: var(--green); color: #000; }
-
-        .suggestions { 
-            position: absolute; 
-            background: #000; 
-            border: 2px solid var(--green); 
-            width: 100%; 
-            z-index: 9999; 
-            list-style: none; 
-            padding: 0; 
-            margin: 0; 
-            display: none; 
-        }
-        .suggestions li { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--green-dim); font-size: 1rem; }
+        .suggestions { position: absolute; background: #000; border: 2px solid var(--green); width: 100%; z-index: 9999; list-style: none; padding: 0; margin: 0; display: none; }
+        .suggestions li { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--dim); font-size: 1rem; }
         .suggestions li:hover { background: var(--green); color: #000; }
-
-        #manifest {
-            background: #000;
-            padding: 25px;
-            border: 2px solid var(--green);
-            white-space: pre-wrap;
-            line-height: 1.5;
-            font-size: 0.95rem;
-        }
-
-        .total-box { 
-            font-size: 2.2rem; 
-            border-top: 4px double var(--green); 
-            margin-top: 20px; 
-            padding-top: 15px; 
-            color: #fff; 
-            text-shadow: 0 0 10px #00ff00;
-        }
-
-        .btn-copy {
-            width: 100%;
-            margin-top: 20px;
-            background: var(--green);
-            color: #000;
-            border: none;
-            padding: 20px;
-            cursor: pointer;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 1rem;
-        }
+        #manifest { background: #000; padding: 25px; border: 2px solid var(--green); white-space: pre-wrap; line-height: 1.5; font-size: 0.95rem; }
+        .total-box { font-size: 2.2rem; border-top: 4px double var(--green); margin-top: 20px; padding-top: 15px; color: #fff; text-shadow: 0 0 10px #0f0; }
+        .btn-copy { width: 100%; margin-top: 20px; background: var(--green); color: #000; border: none; padding: 20px; cursor: pointer; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; font-size: 1rem; }
         .log { color: var(--warn); font-size: 0.8rem; display: block; }
     </style>
 </head>
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.1_PRO</div>
-
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.2_STABLE</div>
     <div class="terminal-body">
         <div class="input-panel">
-            <div class="field">
-                <label>Pickup Location</label>
-                <input type="text" id="origin" placeholder="Type Stadium, Airport, or Address..." oninput="autoSuggest(this)" autocomplete="off">
-                <ul class="suggestions"></ul>
-            </div>
-
-            <div id="stops-container"></div>
-            <button class="btn-small" onclick="addStop()">+ ADD STOP</button>
-
-            <div class="field">
-                <label>Dropoff Location</label>
-                <input type="text" id="destination" placeholder="Dropoff Address..." oninput="autoSuggest(this)" autocomplete="off">
-                <ul class="suggestions"></ul>
-            </div>
-
-            <hr style="border-color: var(--green-dim); margin: 25px 0;">
-
+            <div class="field"><label>Pickup Location</label><input type="text" id="origin" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <div id="stops-container"></div><button class="btn-small" onclick="addStop()">+ ADD STOP</button>
+            <div class="field"><label>Dropoff Location</label><input type="text" id="destination" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <hr style="border-color: var(--dim); margin: 25px 0;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-                <div class="field">
-                    <label>Service Mode</label>
-                    <select id="service" onchange="calculate()">
-                        <option value="Transfer">Transfer (Mileage Only)</option>
-                        <option value="Hourly">Hourly (Garage-to-Garage)</option>
-                    </select>
-                </div>
+                <div class="field"><label>Service Mode</label><select id="service" onchange="calculate()"><option value="Transfer">Transfer</option><option value="Hourly">Hourly (Garage-to-Garage)</option></select></div>
                 <div class="field"><label>Vehicle Fleet</label><select id="vehicle" onchange="calculate()"></select></div>
                 <div class="field"><label>Location Rule</label><select id="place" onchange="calculate()"></select></div>
                 <div class="field"><label>Trip Date</label><input type="date" id="tDate" onchange="calculate()"></div>
@@ -158,9 +46,8 @@
                 <div class="field"><label>Billable Hours</label><input type="number" id="hrs" value="0" step="0.1" oninput="calculate()"></div>
             </div>
         </div>
-
         <div>
-            <div id="manifest">LOADING_DATABASES...</div>
+            <div id="manifest">AWAITING_DATA...</div>
             <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
@@ -170,7 +57,6 @@
     const API_KEY = 'b1SA9FrzBt8C8gp-suH5-96rPUpvr8buwdNKr3FcZ-0';
     const GARAGE_ADDR = "1 Eaton St Suite A, Kansas City, KS 66103";
     const KC_LAT = 39.0997, KC_LON = -94.5786;
-
     const URLS = {
         rates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1067121759&single=true&output=csv',
         date: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1064316017&single=true&output=csv',
@@ -180,7 +66,12 @@
 
     let DB = { rates: [], date: [], time: [], place: [] };
 
-    // --- AUTOCOMPLETE & ROUTING ---
+    function timeToMins(tStr) {
+        if(!tStr) return 0;
+        const [h, m] = tStr.split(':').map(Number);
+        return (h * 60) + (m || 0);
+    }
+
     async function autoSuggest(el) {
         if (el.value.length < 3) return;
         const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(el.value)}&apiKey=${API_KEY}`;
@@ -202,45 +93,33 @@
         const container = document.getElementById('stops-container');
         const div = document.createElement('div');
         div.className = 'field'; div.style.display = 'flex'; div.style.gap = '10px';
-        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="EXTRA STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
+        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
         container.appendChild(div);
     }
 
     async function getDistance() {
         const oAddr = document.getElementById('origin').value, dAddr = document.getElementById('destination').value;
         if (!oAddr || !dAddr) return;
-
         const gc = async (a) => {
             const r = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(a)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`);
             const data = await r.json(); return data.items[0]?.position;
         };
-
-        const getLegData = async (sPos, ePos, waypoints = []) => {
-            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${sPos.lat},${sPos.lng}&destination=${ePos.lat},${ePos.lng}&return=summary&apiKey=${API_KEY}`;
-            waypoints.forEach(w => { url += `&via=${w.lat},${w.lng}`; });
+        const getLeg = async (s, e, w = []) => {
+            let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${s.lat},${s.lng}&destination=${e.lat},${e.lng}&return=summary&apiKey=${API_KEY}`;
+            w.forEach(p => { url += `&via=${p.lat},${p.lng}`; });
             const res = await fetch(url); const rd = await res.json();
-            return {
-                sec: rd.routes[0].sections.reduce((a, s) => a + s.summary.duration, 0),
-                meters: rd.routes[0].sections.reduce((a, s) => a + s.summary.length, 0)
-            };
+            return { s: rd.routes[0].sections.reduce((a, s) => a + s.summary.duration, 0), m: rd.routes[0].sections.reduce((a, s) => a + s.summary.length, 0) };
         };
-
         try {
             const garage = await gc(GARAGE_ADDR), start = await gc(oAddr), end = await gc(dAddr);
-            const stopCoords = [];
-            document.querySelectorAll('#stops-container input').forEach(async (i) => { if(i.value) { const s = await gc(i.value); if(s) stopCoords.push(s); } });
-
-            const leg1 = await getLegData(garage, start); 
-            const leg2 = await getLegData(start, end, stopCoords);
-            const leg3 = await getLegData(end, garage);
-
-            document.getElementById('miles').value = (leg2.meters * 0.000621371).toFixed(1);
-            document.getElementById('hrs').value = ((leg1.sec + leg2.sec + leg3.sec) / 3600).toFixed(1);
+            const stops = []; document.querySelectorAll('#stops-container input').forEach(async (i) => { if(i.value) { const s = await gc(i.value); if(s) stops.push(s); } });
+            const l1 = await getLeg(garage, start), l2 = await getLeg(start, end, stops), l3 = await getLeg(end, garage);
+            document.getElementById('miles').value = (l2.m * 0.000621371).toFixed(1);
+            document.getElementById('hrs').value = ((l1.s + l2.s + l3.s) / 3600).toFixed(1);
             calculate();
         } catch (e) { console.error("Routing error"); }
     }
 
-    // --- CALCULATION ENGINE ---
     async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
 
     async function init() {
@@ -250,11 +129,10 @@
             DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3])||0, multi: parseFloat(x[4])||1 }));
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
-
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
             const pS = document.getElementById('place'); DB.place.forEach(p => { pS.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "> SYSTEM_ERROR"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "!! DB_ERROR !!"; }
     }
 
     function calculate() {
@@ -262,34 +140,29 @@
         const p = DB.place.find(x => x.name === document.getElementById('place').value) || {name:"Standard", fee:0, min:0};
         const mode = document.getElementById('service').value, dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
         let miles = parseFloat(document.getElementById('miles').value) || 0, driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
-        
-        let logs = [], dateMulti = 1.0;
-        let mileageCost = 0, hourlyTotal = 0;
+        let logs = [], dateMulti = 1.0, mileageCost = 0, hourlyTotal = 0;
 
         if (mode === "Hourly") {
-            let billingHrs = Math.max(driveHrs, v.min, p.min);
-            if (dVal) { 
-                const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); 
-                if (dR) { dateMulti = dR.multi; billingHrs = Math.max(billingHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER ACTIVE`); } 
-            }
-            hourlyTotal = billingHrs * v.hr;
-            logs.push(`>> BILLING: ${billingHrs.toFixed(1)}h @ $${v.hr}/hr`);
+            let billHrs = Math.max(driveHrs, v.min, p.min);
+            if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; billHrs = Math.max(billHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER`); } }
+            hourlyTotal = billHrs * v.hr;
+            logs.push(`>> BILLING: ${billHrs.toFixed(1)}h @ $${v.hr}/hr`);
         } else {
             mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
-            logs.push(`>> MODE: TRANSFER (MILEAGE-BASED)`);
         }
 
         const sub = (hourlyTotal + mileageCost) * dateMulti;
         const admin = Math.round(sub * v.admin * 100) / 100, fuel = Math.round(sub * v.fuel * 100) / 100, grat = Math.round(sub * v.grat * 100) / 100;
         
-        // --- SEPARATED SURCHARGES ---
-        const tR = DB.time.find(r => tVal >= r.s && tVal <= r.e);
-        const timeFee = tR ? tR.fee : 0;
-        const airportFee = p.fee;
-        if (timeFee > 0) logs.push(`>> LATE NIGHT/EARLY MORNING FEE: $${timeFee.toFixed(2)}`);
-        if (airportFee > 0) logs.push(`>> AIRPORT FEE: $${airportFee.toFixed(2)}`);
+        // --- FIXED TIME LOGIC ---
+        const inputMins = timeToMins(tVal);
+        const tR = DB.time.find(r => {
+            const start = timeToMins(r.s), end = timeToMins(r.e);
+            return inputMins >= start && inputMins <= end;
+        });
 
-        const total = sub + admin + fuel + grat + timeFee + airportFee;
+        const timeFee = tR ? tR.fee : 0;
+        const total = sub + admin + fuel + grat + timeFee + p.fee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
@@ -302,18 +175,16 @@ BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
-AIRPORT FEE:         $${airportFee.toFixed(2)}
+AIRPORT FEE:         $${p.fee.toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
+${timeFee > 0 ? `<span class="log">>> EARLY MORNING FEE: $${timeFee.toFixed(2)}</span>` : ''}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
 ------------------------------------------------------------`;
         document.getElementById('manifest').innerHTML = manifest;
     }
 
-    function copyQuote() {
-        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('COPIED!'); });
-    }
-
+    function copyQuote() { navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('COPIED!'); }); }
     document.addEventListener('click', (e) => { if (!e.target.closest('.field')) document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none'); });
 </script>
 </body>
