@@ -31,8 +31,7 @@
             max-width: 1300px;
             background: var(--bg);
             border: 3px solid var(--green);
-            box-shadow: 0 0 40px rgba(0, 255, 0, 0.2);
-            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.2);
         }
 
         .window-header {
@@ -122,13 +121,13 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // GARAGE_TO_GARAGE_v5.9</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.0_STABLE</div>
 
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field">
                 <label>Pickup Location</label>
-                <input type="text" id="origin" placeholder="Pickup Address..." oninput="autoSuggest(this)" autocomplete="off">
+                <input type="text" id="origin" placeholder="Type Stadium, Airport, or Address..." oninput="autoSuggest(this)" autocomplete="off">
                 <ul class="suggestions"></ul>
             </div>
 
@@ -161,8 +160,8 @@
         </div>
 
         <div>
-            <div id="manifest">SYSTEM_READY...</div>
-            <button class="btn-copy" onclick="copyQuote()">[ COPY QUOTE TO CLIPBOARD ]</button>
+            <div id="manifest">INITIALIZING_DATA_ENGINES...</div>
+            <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
 </div>
@@ -181,6 +180,7 @@
 
     let DB = { rates: [], date: [], time: [], place: [] };
 
+    // --- AUTOCOMPLETE & ROUTING ---
     async function autoSuggest(el) {
         if (el.value.length < 3) return;
         const url = `https://autosuggest.search.hereapi.com/v1/autosuggest?at=${KC_LAT},${KC_LON}&limit=7&q=${encodeURIComponent(el.value)}&apiKey=${API_KEY}`;
@@ -202,7 +202,7 @@
         const container = document.getElementById('stops-container');
         const div = document.createElement('div');
         div.className = 'field'; div.style.display = 'flex'; div.style.gap = '10px';
-        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
+        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="EXTRA STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
         container.appendChild(div);
     }
 
@@ -215,7 +215,7 @@
             const data = await r.json(); return data.items[0]?.position;
         };
 
-        const getLegSeconds = async (sPos, ePos, waypoints = []) => {
+        const getLegData = async (sPos, ePos, waypoints = []) => {
             let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${sPos.lat},${sPos.lng}&destination=${ePos.lat},${ePos.lng}&return=summary&apiKey=${API_KEY}`;
             waypoints.forEach(w => { url += `&via=${w.lat},${w.lng}`; });
             const res = await fetch(url); const rd = await res.json();
@@ -226,32 +226,21 @@
         };
 
         try {
-            const garage = await gc(GARAGE_ADDR);
-            const start = await gc(oAddr);
-            const end = await gc(dAddr);
-            
-            // Get stops
+            const garage = await gc(GARAGE_ADDR), start = await gc(oAddr), end = await gc(dAddr);
             const stopCoords = [];
-            const stops = document.querySelectorAll('#stops-container input');
-            for(let i of stops) { if(i.value) { const s = await gc(i.value); if(s) stopCoords.push(s); } }
+            document.querySelectorAll('#stops-container input').forEach(async (i) => { if(i.value) { const s = await gc(i.value); if(s) stopCoords.push(s); } });
 
-            // LEG 1: Garage to Pickup
-            const leg1 = await getLegSeconds(garage, start);
-            // LEG 2: Pickup to Dropoff (incl. stops)
-            const leg2 = await getLegSeconds(start, end, stopCoords);
-            // LEG 3: Dropoff to Garage
-            const leg3 = await getLegSeconds(end, garage);
+            const leg1 = await getLegData(garage, start); // Garage to Pickup
+            const leg2 = await getLegData(start, end, stopCoords); // Trip Legs
+            const leg3 = await getLegData(end, garage); // Dropoff to Garage
 
-            const totalSeconds = leg1.sec + leg2.sec + leg3.sec;
-            const tripMiles = leg2.meters * 0.000621371;
-
-            document.getElementById('miles').value = tripMiles.toFixed(1);
-            document.getElementById('hrs').value = (totalSeconds / 3600).toFixed(1);
-            
+            document.getElementById('miles').value = (leg2.meters * 0.000621371).toFixed(1);
+            document.getElementById('hrs').value = ((leg1.sec + leg2.sec + leg3.sec) / 3600).toFixed(1);
             calculate();
         } catch (e) { console.error("Routing error"); }
     }
 
+    // --- CALCULATION ENGINE ---
     async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
 
     async function init() {
@@ -265,62 +254,53 @@
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
             const pS = document.getElementById('place'); DB.place.forEach(p => { pS.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "> SYSTEM_ERROR: DATA_FETCH_FAILED"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "> SYSTEM_ERROR: DATA_LOAD_FAILED"; }
     }
 
     function calculate() {
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value) || DB.rates[0];
         const p = DB.place.find(x => x.name === document.getElementById('place').value) || {name:"Standard", fee:0, min:0};
-        const mode = document.getElementById('service').value;
-        const dVal = document.getElementById('tDate').value;
-        const tVal = document.getElementById('tTime').value;
-        
-        let miles = parseFloat(document.getElementById('miles').value) || 0;
-        let driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
+        const mode = document.getElementById('service').value, dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
+        let miles = parseFloat(document.getElementById('miles').value) || 0, driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
         
         let logs = [], dateMulti = 1.0;
-
-        // --- CALCULATION LOGIC ---
-        let mileageCost = 0;
-        let hourlyTotal = 0;
+        let mileageCost = 0, hourlyTotal = 0;
 
         if (mode === "Hourly") {
-            // ONLY HOURS, NO MILES
-            mileageCost = 0;
             let billingHrs = Math.max(driveHrs, v.min, p.min);
             if (dVal) { 
                 const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); 
-                if (dR) { 
-                    dateMulti = dR.multi; 
-                    billingHrs = Math.max(billingHrs, dR.min); 
-                    if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER ACTIVE`); 
-                } 
+                if (dR) { dateMulti = dR.multi; billingHrs = Math.max(billingHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} Active`); } 
             }
             hourlyTotal = billingHrs * v.hr;
-            logs.push(`>> BILLING: ${billingHrs.toFixed(1)}h (GARAGE-TO-GARAGE) @ $${v.hr}/hr`);
+            logs.push(`>> HOURLY BILLING: ${billingHrs.toFixed(1)}h (GARAGE-TO-GARAGE) @ $${v.hr}/hr`);
         } else {
-            // TRANSFER: MILEAGE ONLY
             mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
-            hourlyTotal = 0;
-            logs.push(`>> MODE: TRANSFER (MILEAGE-BASED)`);
+            logs.push(`>> TRANSFER BILLING: MILEAGE-BASED`);
         }
 
         const sub = (hourlyTotal + mileageCost) * dateMulti;
         const admin = Math.round(sub * v.admin * 100) / 100, fuel = Math.round(sub * v.fuel * 100) / 100, grat = Math.round(sub * v.grat * 100) / 100;
+        
+        // --- 12AM-6AM PICKUP FEE LOGIC ---
         const tR = DB.time.find(r => tVal >= r.s && tVal <= r.e);
-        const total = sub + admin + fuel + grat + (tR ? tR.fee : 0) + p.fee;
+        const timeFee = tR ? tR.fee : 0;
+        if (timeFee > 0) logs.push(`>> LATE NIGHT/EARLY MORNING FEE: $${timeFee.toFixed(2)}`);
+
+        const total = sub + admin + fuel + grat + timeFee + p.fee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
 ------------------------------------------------------------
 MODE:     ${mode.toUpperCase()}
 VEHICLE:  ${v.name.toUpperCase()}
+TIME:     ${tVal}
 ------------------------------------------------------------
 BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
-OTHER SURCHARGES:    $${((tR ? tR.fee : 0) + p.fee).toFixed(2)}
+OTHER SURCHARGES:    $${(timeFee + p.fee).toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
@@ -329,7 +309,7 @@ ${logs.map(l => `<span class="log">${l}</span>`).join('')}
     }
 
     function copyQuote() {
-        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('COPIED!'); });
+        navigator.clipboard.writeText(document.getElementById('manifest').innerText).then(() => { alert('MANIFEST COPIED'); });
     }
 
     document.addEventListener('click', (e) => { if (!e.target.closest('.field')) document.querySelectorAll('.suggestions').forEach(s => s.style.display = 'none'); });
