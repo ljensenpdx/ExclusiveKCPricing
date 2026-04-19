@@ -29,7 +29,7 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.3_PRO</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // AUTO_DETECTION_ACTIVE_v6.4</div>
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field"><label>Pickup Location</label><input type="text" id="origin" placeholder="Type Stadium/Airport..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
@@ -39,7 +39,6 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                 <div class="field"><label>Service Mode</label><select id="service" onchange="calculate()"><option value="Transfer">Transfer</option><option value="Hourly">Hourly (Garage-to-Garage)</option></select></div>
                 <div class="field"><label>Vehicle Fleet</label><select id="vehicle" onchange="calculate()"></select></div>
-                <div class="field"><label>Location Rule</label><select id="place" onchange="calculate()"></select></div>
                 <div class="field"><label>Trip Date</label><input type="date" id="tDate" onchange="calculate()"></div>
                 <div class="field"><label>Pickup Time</label><input type="time" id="tTime" value="12:00" onchange="calculate()"></div>
                 <div class="field"><label>Trip Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
@@ -47,7 +46,7 @@
             </div>
         </div>
         <div>
-            <div id="manifest">AWAITING_DATA...</div>
+            <div id="manifest">SYSTEM_STANDBY...</div>
             <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
@@ -126,7 +125,6 @@
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
-            const pS = document.getElementById('place'); DB.place.forEach(p => { pS.innerHTML += `<option value="${p.name}">${p.name}</option>`; });
             calculate();
         } catch (e) { document.getElementById('manifest').innerHTML = "!! DB_ERROR !!"; }
     }
@@ -135,14 +133,17 @@
         const oAddr = document.getElementById('origin').value;
         const dAddr = document.getElementById('destination').value;
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value) || DB.rates[0];
-        const pRule = DB.place.find(x => x.name === document.getElementById('place').value) || {name:"Standard", fee:0, min:0};
         
-        // --- NEW SCAN LOGIC ---
-        // Checks if text in address boxes matches any LocationName in your spreadsheet
-        let scannedMin = 0;
+        // --- AUTO-SCANNING LOGIC ---
+        let autoMin = 0;
+        let autoFee = 0;
+        let activeLocationName = "";
+
         DB.place.forEach(loc => {
             if (oAddr.toLowerCase().includes(loc.name.toLowerCase()) || dAddr.toLowerCase().includes(loc.name.toLowerCase())) {
-                scannedMin = Math.max(scannedMin, loc.min);
+                autoMin = Math.max(autoMin, loc.min);
+                autoFee = Math.max(autoFee, loc.fee);
+                activeLocationName = loc.name;
             }
         });
 
@@ -151,11 +152,8 @@
         let logs = [], dateMulti = 1.0, mileageCost = 0, hourlyTotal = 0;
 
         if (mode === "Hourly") {
-            // Apply whichever minimum is highest: Vehicle, Scanned Place, or Dropdown Selection
-            let billHrs = Math.max(driveHrs, v.min, pRule.min, scannedMin);
-            
+            let billHrs = Math.max(driveHrs, v.min, autoMin);
             if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; billHrs = Math.max(billHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER`); } }
-            
             hourlyTotal = billHrs * v.hr;
             logs.push(`>> BILLING: ${billHrs.toFixed(1)}h @ $${v.hr}/hr`);
         } else {
@@ -172,7 +170,7 @@
         });
 
         const timeFee = tR ? tR.fee : 0;
-        const total = sub + admin + fuel + grat + timeFee + pRule.fee;
+        const total = sub + admin + fuel + grat + timeFee + autoFee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
@@ -185,10 +183,11 @@ BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
-AIRPORT FEE:         $${pRule.fee.toFixed(2)}
+LOCATION FEE:        $${autoFee.toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 ${timeFee > 0 ? `<span class="log">>> EARLY MORNING FEE: $${timeFee.toFixed(2)}</span>` : ''}
+${autoFee > 0 ? `<span class="log">>> AUTO-DETECTED: ${activeLocationName.toUpperCase()}</span>` : ''}
 <div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
 ------------------------------------------------------------`;
         document.getElementById('manifest').innerHTML = manifest;
