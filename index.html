@@ -29,12 +29,12 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.2_STABLE</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_v6.3_PRO</div>
     <div class="terminal-body">
         <div class="input-panel">
-            <div class="field"><label>Pickup Location</label><input type="text" id="origin" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <div class="field"><label>Pickup Location</label><input type="text" id="origin" placeholder="Type Stadium/Airport..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
             <div id="stops-container"></div><button class="btn-small" onclick="addStop()">+ ADD STOP</button>
-            <div class="field"><label>Dropoff Location</label><input type="text" id="destination" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <div class="field"><label>Dropoff Location</label><input type="text" id="destination" placeholder="Destination..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
             <hr style="border-color: var(--dim); margin: 25px 0;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                 <div class="field"><label>Service Mode</label><select id="service" onchange="calculate()"><option value="Transfer">Transfer</option><option value="Hourly">Hourly (Garage-to-Garage)</option></select></div>
@@ -66,11 +66,7 @@
 
     let DB = { rates: [], date: [], time: [], place: [] };
 
-    function timeToMins(tStr) {
-        if(!tStr) return 0;
-        const [h, m] = tStr.split(':').map(Number);
-        return (h * 60) + (m || 0);
-    }
+    function timeToMins(tStr) { if(!tStr) return 0; const [h, m] = tStr.split(':').map(Number); return (h * 60) + (m || 0); }
 
     async function autoSuggest(el) {
         if (el.value.length < 3) return;
@@ -136,15 +132,30 @@
     }
 
     function calculate() {
+        const oAddr = document.getElementById('origin').value;
+        const dAddr = document.getElementById('destination').value;
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value) || DB.rates[0];
-        const p = DB.place.find(x => x.name === document.getElementById('place').value) || {name:"Standard", fee:0, min:0};
+        const pRule = DB.place.find(x => x.name === document.getElementById('place').value) || {name:"Standard", fee:0, min:0};
+        
+        // --- NEW SCAN LOGIC ---
+        // Checks if text in address boxes matches any LocationName in your spreadsheet
+        let scannedMin = 0;
+        DB.place.forEach(loc => {
+            if (oAddr.toLowerCase().includes(loc.name.toLowerCase()) || dAddr.toLowerCase().includes(loc.name.toLowerCase())) {
+                scannedMin = Math.max(scannedMin, loc.min);
+            }
+        });
+
         const mode = document.getElementById('service').value, dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
         let miles = parseFloat(document.getElementById('miles').value) || 0, driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
         let logs = [], dateMulti = 1.0, mileageCost = 0, hourlyTotal = 0;
 
         if (mode === "Hourly") {
-            let billHrs = Math.max(driveHrs, v.min, p.min);
+            // Apply whichever minimum is highest: Vehicle, Scanned Place, or Dropdown Selection
+            let billHrs = Math.max(driveHrs, v.min, pRule.min, scannedMin);
+            
             if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; billHrs = Math.max(billHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER`); } }
+            
             hourlyTotal = billHrs * v.hr;
             logs.push(`>> BILLING: ${billHrs.toFixed(1)}h @ $${v.hr}/hr`);
         } else {
@@ -154,15 +165,14 @@
         const sub = (hourlyTotal + mileageCost) * dateMulti;
         const admin = Math.round(sub * v.admin * 100) / 100, fuel = Math.round(sub * v.fuel * 100) / 100, grat = Math.round(sub * v.grat * 100) / 100;
         
-        // --- FIXED TIME LOGIC ---
         const inputMins = timeToMins(tVal);
         const tR = DB.time.find(r => {
-            const start = timeToMins(r.s), end = timeToMins(r.e);
-            return inputMins >= start && inputMins <= end;
+            const s = timeToMins(r.s), e = timeToMins(r.e);
+            return inputMins >= s && inputMins <= e;
         });
 
         const timeFee = tR ? tR.fee : 0;
-        const total = sub + admin + fuel + grat + timeFee + p.fee;
+        const total = sub + admin + fuel + grat + timeFee + pRule.fee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
@@ -175,7 +185,7 @@ BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
-AIRPORT FEE:         $${p.fee.toFixed(2)}
+AIRPORT FEE:         $${pRule.fee.toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 ${timeFee > 0 ? `<span class="log">>> EARLY MORNING FEE: $${timeFee.toFixed(2)}</span>` : ''}
