@@ -30,12 +30,12 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_CORE_v6.7</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_CORE_v6.8_FIXED</div>
     <div class="terminal-body">
         <div class="input-panel">
-            <div class="field"><label>Pickup Location</label><input type="text" id="origin" placeholder="Type Location..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <div class="field"><label>Pickup Location</label><input type="text" id="origin" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
             <div id="stops-container"></div><button class="btn-small" onclick="addStop()">+ ADD STOP</button>
-            <div class="field"><label>Dropoff Location</label><input type="text" id="destination" placeholder="Destination..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
+            <div class="field"><label>Dropoff Location</label><input type="text" id="destination" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
             
             <hr style="border-color: var(--dim); margin: 20px 0;">
 
@@ -43,27 +43,16 @@
                 <div class="field" style="grid-column: span 2;">
                     <label>Service Type</label>
                     <select id="service" onchange="calculate()">
-                        <optgroup label="Point-to-Point (Mileage Billing)">
+                        <optgroup label="Point-to-Point">
                             <option value="Point-to-Point">Point-to-Point</option>
                             <option value="From Airport">From Airport</option>
                             <option value="To Airport">To Airport</option>
-                            <option value="From FBO">From FBO</option>
-                            <option value="To FBO">To FBO</option>
                         </optgroup>
-                        <optgroup label="Hourly (Time Billing)">
+                        <optgroup label="Hourly">
                             <option value="Hourly/As Directed">Hourly/As Directed</option>
-                            <option value="Birthday Party">Birthday Party</option>
-                            <option value="Birthday Party (21+)">Birthday Party (21+)</option>
-                            <option value="Prom">Prom</option>
                             <option value="Wedding">Wedding</option>
+                            <option value="Prom">Prom</option>
                             <option value="Chiefs Games">Chiefs Games</option>
-                            <option value="Royals">Royals</option>
-                            <option value="Wine Tours">Wine Tours</option>
-                            <option value="Holiday Light Tours">Holiday Light Tours</option>
-                            <option value="Bachelor/Bachelorette Parties">Bachelor/Bachelorette Parties</option>
-                            <option value="Concert">Concert</option>
-                            <option value="Funeral">Funeral</option>
-                            <option value="Quinceañera">Quinceañera</option>
                             <option value="FIFA Games 2026">FIFA Games 2026</option>
                         </optgroup>
                     </select>
@@ -88,11 +77,7 @@
     const GARAGE_ADDR = "1 Eaton St Suite A, Kansas City, KS 66103";
     const KC_LAT = 39.0997, KC_LON = -94.5786;
     
-    const HOURLY_SERVICES = [
-        "Birthday Party", "Prom", "Wedding", "Birthday Party (21+)", "Chiefs Games", 
-        "Royals", "Wine Tours", "Holiday Light Tours", "Bachelor/Bachelorette Parties", 
-        "Concert", "Funeral", "Quinceañera", "FIFA Games 2026", "Hourly/As Directed"
-    ];
+    const HOURLY_SERVICES = ["Birthday Party", "Prom", "Wedding", "Birthday Party (21+)", "Chiefs Games", "Royals", "Wine Tours", "Holiday Light Tours", "Bachelor/Bachelorette Parties", "Concert", "Funeral", "Quinceañera", "FIFA Games 2026", "Hourly/As Directed"];
 
     const URLS = {
         rates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1067121759&single=true&output=csv',
@@ -103,6 +88,19 @@
     };
 
     let DB = { rates: [], date: [], time: [], place: [], serviceRules: [] };
+
+    // --- HELPER: NORMALIZE DATE FORMATS ---
+    function parseSheetDate(dStr) {
+        if (!dStr) return "";
+        const parts = dStr.trim().split('/');
+        if (parts.length === 3) {
+            const m = parts[0].padStart(2, '0');
+            const d = parts[1].padStart(2, '0');
+            const y = parts[2];
+            return `${y}-${m}-${d}`; // Converts 7/11/2026 to 2026-07-11
+        }
+        return dStr;
+    }
 
     function timeToMins(tStr) { if(!tStr) return 0; const [h, m] = tStr.split(':').map(Number); return (h * 60) + (m || 0); }
 
@@ -163,7 +161,16 @@
         try {
             const [rData, dData, tData, pData, sData] = await Promise.all([fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place), fetchData(URLS.serviceRules)]);
             DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1])||0, min: parseFloat(x[2])||0, allowance: parseFloat(x[3])||0, baseMile: parseFloat(x[4])||0, over: parseFloat(x[5])||0, grat: (parseFloat(x[6])||0)/100, fuel: (parseFloat(x[7])||0)/100, admin: (parseFloat(x[8])||0)/100 }));
-            DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3])||0, multi: parseFloat(x[4])||1 }));
+            
+            // NORMALIZE SPREADSHEET DATES ON LOAD
+            DB.date = dData.filter(x => x[0]).map(x => ({ 
+                name: x[0].trim(), 
+                s: parseSheetDate(x[1]), 
+                e: parseSheetDate(x[2]), 
+                min: parseFloat(x[3])||0, 
+                multi: parseFloat(x[4])||1 
+            }));
+
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
             DB.serviceRules = sData.filter(x => x[0]).map(x => ({ name: x[0].trim(), min: parseFloat(x[1])||0, fee: parseFloat(x[2])||0 }));
@@ -178,12 +185,10 @@
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value) || DB.rates[0];
         const sType = document.getElementById('service').value;
 
-        // UI Logic
         const isHourly = HOURLY_SERVICES.includes(sType);
         document.getElementById('hrs-field').className = isHourly ? 'field' : 'hidden';
         document.getElementById('miles-field').className = !isHourly ? 'field' : 'hidden';
 
-        // Auto-Detection
         let autoMin = 0, autoFee = 0, activeLoc = "";
         DB.place.forEach(loc => {
             if (oAddr.toLowerCase().includes(loc.name.toLowerCase()) || dAddr.toLowerCase().includes(loc.name.toLowerCase())) {
@@ -200,7 +205,19 @@
 
         if (isHourly) {
             let billHrs = Math.max(driveHrs, v.min, autoMin, sRule.min);
-            if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; billHrs = Math.max(billHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER`); } }
+            
+            // --- FIXED DATE RULE CHECK ---
+            if (dVal) { 
+                const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); 
+                if (dR) { 
+                    dateMulti = dR.multi; 
+                    if (dR.min > billHrs) {
+                        billHrs = dR.min;
+                        logs.push(`>> DATE_MINIMUM_APPLIED: ${dR.name} (${dR.min}H)`);
+                    }
+                    if (dR.multi > 1) logs.push(`>> EVENT_MULTIPLIER: ${dR.name} (${dR.multi}x)`); 
+                } 
+            }
             sub = (billHrs * v.hr) * dateMulti;
             logs.push(`>> BILLING: ${billHrs.toFixed(1)}h @ $${v.hr}/hr`);
         } else {
@@ -219,7 +236,7 @@
 ------------------------------------------------------------
 SERVICE:  ${sType.toUpperCase()}
 VEHICLE:  ${v.name.toUpperCase()}
-TIME:     ${tVal}
+DATE:     ${dVal} | TIME: ${tVal}
 ------------------------------------------------------------
 BASE RATE:           $${sub.toFixed(2)}
 ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
