@@ -9,27 +9,28 @@
     <style>
         :root { --bg: #000; --green: #0f0; --dim: #004400; --warn: #ff0; }
         body { background: var(--bg); color: var(--green); font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; text-transform: uppercase; }
-        .window { width: 98%; max-width: 1350px; background: var(--bg); border: 3px solid var(--green); box-shadow: 0 0 50px rgba(0, 255, 0, 0.2); }
+        .window { width: 98%; max-width: 1400px; background: var(--bg); border: 3px solid var(--green); box-shadow: 0 0 50px rgba(0, 255, 0, 0.2); }
         .window-header { background: var(--green); padding: 10px 15px; color: #000; font-weight: 900; font-size: 0.9rem; letter-spacing: 3px; }
         .terminal-body { padding: 20px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; }
         .input-panel { border-right: 2px solid var(--dim); padding-right: 25px; }
         .field { margin-bottom: 12px; position: relative; }
         .field label { display: block; font-size: 0.7rem; margin-bottom: 6px; font-weight: bold; }
-        input, select { background: #000; border: 2px solid var(--green); color: var(--green); padding: 10px; width: 100%; box-sizing: border-box; outline: none; font-size: 1rem; font-family: inherit; }
+        input, select { background: #000; border: 2px solid var(--green); color: var(--green); padding: 12px; width: 100%; box-sizing: border-box; outline: none; font-size: 1rem; font-family: inherit; }
         .btn-small { background: #000; color: var(--green); border: 2px solid var(--green); cursor: pointer; padding: 5px 12px; font-weight: bold; margin-bottom: 8px;}
         .suggestions { position: absolute; background: #000; border: 2px solid var(--green); width: 100%; z-index: 9999; list-style: none; padding: 0; margin: 0; display: none; }
         .suggestions li { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--dim); font-size: 0.9rem; }
         .suggestions li:hover { background: var(--green); color: #000; }
-        #manifest { background: #000; padding: 25px; border: 2px solid var(--green); white-space: pre-wrap; line-height: 1.4; font-size: 0.9rem; }
+        #manifest { background: #000; padding: 25px; border: 2px solid var(--green); white-space: pre-wrap; line-height: 1.4; font-size: 0.9rem; min-height: 500px; }
         .total-box { font-size: 2.2rem; border-top: 4px double var(--green); margin-top: 15px; padding-top: 15px; color: #fff; text-shadow: 0 0 10px #0f0; }
         .btn-copy { width: 100%; margin-top: 15px; background: var(--green); color: #000; border: none; padding: 18px; cursor: pointer; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+        .hidden { display: none !important; }
         .log { color: var(--warn); font-size: 0.75rem; display: block; }
     </style>
 </head>
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // DISPATCH_CORE_v6.5</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_CORE_v6.7</div>
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field"><label>Pickup Location</label><input type="text" id="origin" placeholder="Type Location..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
@@ -39,17 +40,17 @@
             <hr style="border-color: var(--dim); margin: 20px 0;">
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                <div class="field">
+                <div class="field" style="grid-column: span 2;">
                     <label>Service Type</label>
                     <select id="service" onchange="calculate()">
-                        <optgroup label="Point-to-Point Services">
+                        <optgroup label="Point-to-Point (Mileage Billing)">
                             <option value="Point-to-Point">Point-to-Point</option>
                             <option value="From Airport">From Airport</option>
                             <option value="To Airport">To Airport</option>
                             <option value="From FBO">From FBO</option>
                             <option value="To FBO">To FBO</option>
                         </optgroup>
-                        <optgroup label="Hourly Services">
+                        <optgroup label="Hourly (Time Billing)">
                             <option value="Hourly/As Directed">Hourly/As Directed</option>
                             <option value="Birthday Party">Birthday Party</option>
                             <option value="Birthday Party (21+)">Birthday Party (21+)</option>
@@ -70,12 +71,13 @@
                 <div class="field"><label>Vehicle Fleet</label><select id="vehicle" onchange="calculate()"></select></div>
                 <div class="field"><label>Trip Date</label><input type="date" id="tDate" onchange="calculate()"></div>
                 <div class="field"><label>Pickup Time</label><input type="time" id="tTime" value="12:00" onchange="calculate()"></div>
-                <div class="field"><label>Trip Miles</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
-                <div class="field"><label>Billable Hours</label><input type="number" id="hrs" value="0" step="0.1" oninput="calculate()"></div>
+                
+                <div class="field" id="miles-field"><label>Trip Miles (Auto)</label><input type="number" id="miles" value="0" step="0.1" oninput="calculate()"></div>
+                <div class="field" id="hrs-field"><label>Billable Hours (Auto)</label><input type="number" id="hrs" value="0" step="0.1" oninput="calculate()"></div>
             </div>
         </div>
         <div>
-            <div id="manifest">SYSTEM_READY...</div>
+            <div id="manifest">SYSTEM_STANDBY...</div>
             <button class="btn-copy" onclick="copyQuote()">[ COPY MANIFEST TO CLIPBOARD ]</button>
         </div>
     </div>
@@ -86,7 +88,6 @@
     const GARAGE_ADDR = "1 Eaton St Suite A, Kansas City, KS 66103";
     const KC_LAT = 39.0997, KC_LON = -94.5786;
     
-    // Grouping logic
     const HOURLY_SERVICES = [
         "Birthday Party", "Prom", "Wedding", "Birthday Party (21+)", "Chiefs Games", 
         "Royals", "Wine Tours", "Holiday Light Tours", "Bachelor/Bachelorette Parties", 
@@ -97,10 +98,11 @@
         rates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1067121759&single=true&output=csv',
         date: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1064316017&single=true&output=csv',
         time: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1590043173&single=true&output=csv',
-        place: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1310928419&single=true&output=csv'
+        place: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=1310928419&single=true&output=csv',
+        serviceRules: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLyRAPuP_5jMNfPhbudKBQss11tBPnELGmDVCTbRS_XzfFjZ1_wKfXUU5AQdBPyA/pub?gid=914782902&single=true&output=csv'
     };
 
-    let DB = { rates: [], date: [], time: [], place: [] };
+    let DB = { rates: [], date: [], time: [], place: [], serviceRules: [] };
 
     function timeToMins(tStr) { if(!tStr) return 0; const [h, m] = tStr.split(':').map(Number); return (h * 60) + (m || 0); }
 
@@ -134,7 +136,7 @@
         if (!oAddr || !dAddr) return;
         const gc = async (a) => {
             const r = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(a)}&at=${KC_LAT},${KC_LON}&apiKey=${API_KEY}`);
-            const data = await r.json(); return data.items[0]?.position;
+            const d = await r.json(); return d.items[0]?.position;
         };
         const getLeg = async (s, e, w = []) => {
             let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${s.lat},${s.lng}&destination=${e.lat},${e.lng}&return=summary&apiKey=${API_KEY}`;
@@ -149,30 +151,39 @@
             document.getElementById('miles').value = (l2.m * 0.000621371).toFixed(1);
             document.getElementById('hrs').value = ((l1.s + l2.s + l3.s) / 3600).toFixed(1);
             calculate();
-        } catch (e) { console.error("Routing error"); }
+        } catch (e) { console.error("Routing failed"); }
     }
 
-    async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
+    async function fetchData(url) { 
+        const r = await fetch(url); const d = await r.text(); 
+        return d.split('\n').slice(1).map(row => row.split(',')); 
+    }
 
     async function init() {
         try {
-            const [rData, dData, tData, pData] = await Promise.all([fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place)]);
+            const [rData, dData, tData, pData, sData] = await Promise.all([fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place), fetchData(URLS.serviceRules)]);
             DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1])||0, min: parseFloat(x[2])||0, allowance: parseFloat(x[3])||0, baseMile: parseFloat(x[4])||0, over: parseFloat(x[5])||0, grat: (parseFloat(x[6])||0)/100, fuel: (parseFloat(x[7])||0)/100, admin: (parseFloat(x[8])||0)/100 }));
             DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), min: parseFloat(x[3])||0, multi: parseFloat(x[4])||1 }));
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
+            DB.serviceRules = sData.filter(x => x[0]).map(x => ({ name: x[0].trim(), min: parseFloat(x[1])||0, fee: parseFloat(x[2])||0 }));
+
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
             calculate();
-        } catch (e) { document.getElementById('manifest').innerHTML = "!! DB_ERROR !!"; }
+        } catch (e) { document.getElementById('manifest').innerHTML = "!! DB_SYNC_ERROR !!"; }
     }
 
     function calculate() {
-        const oAddr = document.getElementById('origin').value;
-        const dAddr = document.getElementById('destination').value;
+        const oAddr = document.getElementById('origin').value, dAddr = document.getElementById('destination').value;
         const v = DB.rates.find(x => x.name === document.getElementById('vehicle').value) || DB.rates[0];
         const sType = document.getElementById('service').value;
-        
-        // --- AUTO-DETECTION ---
+
+        // UI Logic
+        const isHourly = HOURLY_SERVICES.includes(sType);
+        document.getElementById('hrs-field').className = isHourly ? 'field' : 'hidden';
+        document.getElementById('miles-field').className = !isHourly ? 'field' : 'hidden';
+
+        // Auto-Detection
         let autoMin = 0, autoFee = 0, activeLoc = "";
         DB.place.forEach(loc => {
             if (oAddr.toLowerCase().includes(loc.name.toLowerCase()) || dAddr.toLowerCase().includes(loc.name.toLowerCase())) {
@@ -182,27 +193,26 @@
             }
         });
 
+        const sRule = DB.serviceRules.find(r => r.name === sType) || { min: 0, fee: 0 };
         const dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
         let miles = parseFloat(document.getElementById('miles').value) || 0, driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
         let logs = [], dateMulti = 1.0, sub = 0;
 
-        // --- BRANCH LOGIC: HOURLY VS POINT-TO-POINT ---
-        if (HOURLY_SERVICES.includes(sType)) {
-            let billHrs = Math.max(driveHrs, v.min, autoMin);
+        if (isHourly) {
+            let billHrs = Math.max(driveHrs, v.min, autoMin, sRule.min);
             if (dVal) { const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); if (dR) { dateMulti = dR.multi; billHrs = Math.max(billHrs, dR.min); if (dR.multi > 1) logs.push(`>> EVENT: ${dR.name} MULTIPLIER`); } }
             sub = (billHrs * v.hr) * dateMulti;
             logs.push(`>> BILLING: ${billHrs.toFixed(1)}h @ $${v.hr}/hr`);
         } else {
             const mileageCost = (miles <= v.allowance) ? v.baseMile : v.baseMile + ((miles - v.allowance) * v.over);
             sub = mileageCost * dateMulti;
-            logs.push(`>> MODE: POINT-TO-POINT`);
         }
 
         const admin = Math.round(sub * v.admin * 100) / 100, fuel = Math.round(sub * v.fuel * 100) / 100, grat = Math.round(sub * v.grat * 100) / 100;
         const inputMins = timeToMins(tVal);
         const tR = DB.time.find(r => { const s = timeToMins(r.s), e = timeToMins(r.e); return inputMins >= s && inputMins <= e; });
         const timeFee = tR ? tR.fee : 0;
-        const total = sub + admin + fuel + grat + timeFee + autoFee;
+        const total = sub + admin + fuel + grat + timeFee + autoFee + sRule.fee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
@@ -216,6 +226,7 @@ ADMIN FEE (${(v.admin*100).toFixed(0)}%):       $${admin.toFixed(2)}
 FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
 LOCATION FEE:        $${autoFee.toFixed(2)}
+SERVICE FEE:         $${sRule.fee.toFixed(2)}
 ------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 ${timeFee > 0 ? `<span class="log">>> EARLY MORNING FEE: $${timeFee.toFixed(2)}</span>` : ''}
