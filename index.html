@@ -17,6 +17,7 @@
         .field label { display: block; font-size: 0.7rem; margin-bottom: 6px; font-weight: bold; }
         input, select { background: #000; border: 2px solid var(--green); color: var(--green); padding: 12px; width: 100%; box-sizing: border-box; outline: none; font-size: 1rem; font-family: inherit; }
         .btn-small { background: #000; color: var(--green); border: 2px solid var(--green); cursor: pointer; padding: 5px 12px; font-weight: bold; margin-bottom: 8px;}
+        .btn-small:hover { background: var(--green); color: #000; }
         .suggestions { position: absolute; background: #000; border: 2px solid var(--green); width: 100%; z-index: 9999; list-style: none; padding: 0; margin: 0; display: none; }
         .suggestions li { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--dim); font-size: 0.9rem; }
         .suggestions li:hover { background: var(--green); color: #000; }
@@ -30,11 +31,11 @@
 <body onload="init()">
 
 <div class="window">
-    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_CORE_v6.8_FIXED</div>
+    <div class="window-header">EXCLUSIVE_TRANSPORT_KC // SYSTEM_CORE_v6.9_STOP_FEES</div>
     <div class="terminal-body">
         <div class="input-panel">
             <div class="field"><label>Pickup Location</label><input type="text" id="origin" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
-            <div id="stops-container"></div><button class="btn-small" onclick="addStop()">+ ADD STOP</button>
+            <div id="stops-container"></div><button class="btn-small" onclick="addStop()">+ ADD STOP ($20)</button>
             <div class="field"><label>Dropoff Location</label><input type="text" id="destination" oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div>
             
             <hr style="border-color: var(--dim); margin: 20px 0;">
@@ -76,6 +77,7 @@
     const API_KEY = 'b1SA9FrzBt8C8gp-suH5-96rPUpvr8buwdNKr3FcZ-0';
     const GARAGE_ADDR = "1 Eaton St Suite A, Kansas City, KS 66103";
     const KC_LAT = 39.0997, KC_LON = -94.5786;
+    const STOP_FEE_RATE = 20.00;
     
     const HOURLY_SERVICES = ["Birthday Party", "Prom", "Wedding", "Birthday Party (21+)", "Chiefs Games", "Royals", "Wine Tours", "Holiday Light Tours", "Bachelor/Bachelorette Parties", "Concert", "Funeral", "Quinceañera", "FIFA Games 2026", "Hourly/As Directed"];
 
@@ -89,7 +91,6 @@
 
     let DB = { rates: [], date: [], time: [], place: [], serviceRules: [] };
 
-    // --- HELPER: NORMALIZE DATE FORMATS ---
     function parseSheetDate(dStr) {
         if (!dStr) return "";
         const parts = dStr.trim().split('/');
@@ -97,7 +98,7 @@
             const m = parts[0].padStart(2, '0');
             const d = parts[1].padStart(2, '0');
             const y = parts[2];
-            return `${y}-${m}-${d}`; // Converts 7/11/2026 to 2026-07-11
+            return `${y}-${m}-${d}`;
         }
         return dStr;
     }
@@ -125,8 +126,9 @@
         const container = document.getElementById('stops-container');
         const div = document.createElement('div');
         div.className = 'field'; div.style.display = 'flex'; div.style.gap = '10px';
-        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="STOP..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); getDistance();">X</button>`;
+        div.innerHTML = `<div style="flex-grow:1;position:relative;"><input type="text" placeholder="STOP ADDRESS..." oninput="autoSuggest(this)" autocomplete="off"><ul class="suggestions"></ul></div><button class="btn-small" onclick="this.parentElement.remove(); calculate(); getDistance();">X</button>`;
         container.appendChild(div);
+        calculate(); // Instantly update stop count pricing
     }
 
     async function getDistance() {
@@ -152,29 +154,16 @@
         } catch (e) { console.error("Routing failed"); }
     }
 
-    async function fetchData(url) { 
-        const r = await fetch(url); const d = await r.text(); 
-        return d.split('\n').slice(1).map(row => row.split(',')); 
-    }
+    async function fetchData(url) { const r = await fetch(url); const d = await r.text(); return d.split('\n').slice(1).map(row => row.split(',')); }
 
     async function init() {
         try {
             const [rData, dData, tData, pData, sData] = await Promise.all([fetchData(URLS.rates), fetchData(URLS.date), fetchData(URLS.time), fetchData(URLS.place), fetchData(URLS.serviceRules)]);
             DB.rates = rData.filter(x => x[0]).map(x => ({ name: x[0].trim(), hr: parseFloat(x[1])||0, min: parseFloat(x[2])||0, allowance: parseFloat(x[3])||0, baseMile: parseFloat(x[4])||0, over: parseFloat(x[5])||0, grat: (parseFloat(x[6])||0)/100, fuel: (parseFloat(x[7])||0)/100, admin: (parseFloat(x[8])||0)/100 }));
-            
-            // NORMALIZE SPREADSHEET DATES ON LOAD
-            DB.date = dData.filter(x => x[0]).map(x => ({ 
-                name: x[0].trim(), 
-                s: parseSheetDate(x[1]), 
-                e: parseSheetDate(x[2]), 
-                min: parseFloat(x[3])||0, 
-                multi: parseFloat(x[4])||1 
-            }));
-
+            DB.date = dData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: parseSheetDate(x[1]), e: parseSheetDate(x[2]), min: parseFloat(x[3])||0, multi: parseFloat(x[4])||1 }));
             DB.time = tData.filter(x => x[0]).map(x => ({ name: x[0].trim(), s: x[1].trim(), e: x[2].trim(), fee: parseFloat(x[3])||0 }));
             DB.place = pData.filter(x => x[0]).map(x => ({ name: x[0].trim(), fee: parseFloat(x[1])||0, min: parseFloat(x[2])||0 }));
             DB.serviceRules = sData.filter(x => x[0]).map(x => ({ name: x[0].trim(), min: parseFloat(x[1])||0, fee: parseFloat(x[2])||0 }));
-
             const vS = document.getElementById('vehicle'); DB.rates.forEach(v => { vS.innerHTML += `<option value="${v.name}">${v.name}</option>`; });
             calculate();
         } catch (e) { document.getElementById('manifest').innerHTML = "!! DB_SYNC_ERROR !!"; }
@@ -189,6 +178,7 @@
         document.getElementById('hrs-field').className = isHourly ? 'field' : 'hidden';
         document.getElementById('miles-field').className = !isHourly ? 'field' : 'hidden';
 
+        // AUTO-DETECTION & STOP CALCULATION
         let autoMin = 0, autoFee = 0, activeLoc = "";
         DB.place.forEach(loc => {
             if (oAddr.toLowerCase().includes(loc.name.toLowerCase()) || dAddr.toLowerCase().includes(loc.name.toLowerCase())) {
@@ -198,6 +188,10 @@
             }
         });
 
+        // CALCULATE STOP FEES ($20 PER STOP INPUT)
+        const numStops = document.querySelectorAll('#stops-container input').length;
+        const stopTotalFee = numStops * STOP_FEE_RATE;
+
         const sRule = DB.serviceRules.find(r => r.name === sType) || { min: 0, fee: 0 };
         const dVal = document.getElementById('tDate').value, tVal = document.getElementById('tTime').value;
         let miles = parseFloat(document.getElementById('miles').value) || 0, driveHrs = parseFloat(document.getElementById('hrs').value) || 0;
@@ -205,16 +199,11 @@
 
         if (isHourly) {
             let billHrs = Math.max(driveHrs, v.min, autoMin, sRule.min);
-            
-            // --- FIXED DATE RULE CHECK ---
             if (dVal) { 
                 const dR = DB.date.find(r => dVal >= r.s && dVal <= r.e); 
                 if (dR) { 
                     dateMulti = dR.multi; 
-                    if (dR.min > billHrs) {
-                        billHrs = dR.min;
-                        logs.push(`>> DATE_MINIMUM_APPLIED: ${dR.name} (${dR.min}H)`);
-                    }
+                    if (dR.min > billHrs) { billHrs = dR.min; logs.push(`>> DATE_MINIMUM: ${dR.name} (${dR.min}H)`); }
                     if (dR.multi > 1) logs.push(`>> EVENT_MULTIPLIER: ${dR.name} (${dR.multi}x)`); 
                 } 
             }
@@ -229,7 +218,8 @@
         const inputMins = timeToMins(tVal);
         const tR = DB.time.find(r => { const s = timeToMins(r.s), e = timeToMins(r.e); return inputMins >= s && inputMins <= e; });
         const timeFee = tR ? tR.fee : 0;
-        const total = sub + admin + fuel + grat + timeFee + autoFee + sRule.fee;
+        
+        const grandTotal = sub + admin + fuel + grat + timeFee + autoFee + sRule.fee + stopTotalFee;
 
         const manifest = `------------------------------------------------------------
           EXCLUSIVE TRANSPORTATION KC // QUOTE
@@ -244,11 +234,11 @@ FUEL SURCH (${(v.fuel*100).toFixed(0)}%):      $${fuel.toFixed(2)}
 STD GRAT (${(v.grat*100).toFixed(0)}%):        $${grat.toFixed(2)}
 LOCATION FEE:        $${autoFee.toFixed(2)}
 SERVICE FEE:         $${sRule.fee.toFixed(2)}
-------------------------------------------------------------
+${stopTotalFee > 0 ? `STOP FEES (${numStops}):       $${stopTotalFee.toFixed(2)}\n` : ''}------------------------------------------------------------
 ${logs.map(l => `<span class="log">${l}</span>`).join('')}
 ${timeFee > 0 ? `<span class="log">>> EARLY MORNING FEE: $${timeFee.toFixed(2)}</span>` : ''}
 ${autoFee > 0 ? `<span class="log">>> AUTO-DETECTED: ${activeLoc.toUpperCase()}</span>` : ''}
-<div class="total-box">GRAND TOTAL: $${total.toFixed(2)}</div>
+<div class="total-box">GRAND TOTAL: $${grandTotal.toFixed(2)}</div>
 ------------------------------------------------------------`;
         document.getElementById('manifest').innerHTML = manifest;
     }
